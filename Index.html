@@ -39,12 +39,13 @@
 		</div>
 		
 		<div id="bang-thong-bao">
-			<div id="tieu-de">Đang tìm thẻ...</div>
-			<div id="noi-dung">Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau</div>
+			<div id="tieu-de">Đang khởi tạo Camera...</div>
+			<div id="noi-dung">Vui lòng chờ trong giây lát</div>
 		</div>
 		
 		<a-scene 
-			mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: true; filterMinCF:0.001; filterBeta: 1000;" 
+			id="canh-ar"
+			mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: false; filterMinCF:0.001; filterBeta: 1000;" 
 			color-space="sRGB" 
 			vr-mode-ui="enabled: false" 
 			device-orientation-permission-ui="enabled: false">
@@ -54,29 +55,20 @@
 			
 			<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 			
-			<!-- THẺ 0: Dung dịch NaOH (Cốc thủy tinh chứa chất lỏng) -->
+			<!-- THẺ 0: Dung dịch NaOH -->
 			<a-entity id="the-naoh" mindar-image-target="targetIndex: 0">
-				<!-- Vỏ cốc thủy tinh trong suốt -->
 				<a-cylinder position="0 0.15 0" radius="0.22" height="0.4" material="color: #ffffff; opacity: 0.25; transparent: true; roughness: 0.1"></a-cylinder>
-				
-				<!-- Khối chất lỏng bên trong (Ban đầu trong suốt không màu) -->
 				<a-cylinder id="chat-long-naoh" position="0 0.1 0" radius="0.2" height="0.3" material="color: #e2e8f0; opacity: 0.55; transparent: true; roughness: 0.2"></a-cylinder>
-				
 				<a-text value="dd NaOH (Trong suot)" id="nhan-naoh" position="0 0.45 0" align="center" scale="0.55 0.55 0.55" color="#38bdf8"></a-text>
 			</a-entity>
 			
-			<!-- THẺ 1: Thuốc thử Phenolphthalein (Ống nhỏ giọt) -->
+			<!-- THẺ 1: Thuốc thử Phenolphthalein -->
 			<a-entity id="the-phenol" mindar-image-target="targetIndex: 1">
-				<!-- Thân ống nhỏ giọt -->
 				<a-cylinder position="0 0.25 0" radius="0.04" height="0.35" material="color: #cbd5e1; opacity: 0.6; transparent: true"></a-cylinder>
-				<!-- Núm cao su bóp -->
 				<a-sphere position="0 0.45 0" radius="0.07" material="color: #475569"></a-sphere>
-				
-				<!-- Giọt thuốc thử rơi xuống -->
 				<a-sphere id="giot-chi-thi" position="0 0.05 0" radius="0.035" material="color: #ffffff; opacity: 0.8; transparent: true"
 					animation="property: position; to: 0 -0.15 0; dur: 800; loop: true; easing: easeInQuad">
 				</a-sphere>
-				
 				<a-text value="Phenolphthalein" position="0 0.58 0" align="center" scale="0.55 0.55 0.55" color="#ec4899"></a-text>
 			</a-entity>
 		</a-scene>
@@ -84,6 +76,9 @@
 		<script>
 			let audioCtx = null;
 			let giongNoiChuan = null;
+			const sceneEl = document.querySelector('#canh-ar');
+			const tieuDe = document.querySelector('#tieu-de');
+			const noiDung = document.querySelector('#noi-dung');
 			
 			function layGiongDoc() {
 				if ('speechSynthesis' in window) {
@@ -106,9 +101,26 @@
 					window.speechSynthesis.speak(amThanhMoDau);
 					layGiongDoc();
 				}
+
+				// Kích hoạt hệ thống MindAR
+				const arSystem = sceneEl.systems["mindar-image-system"];
+				if (arSystem) {
+					arSystem.start();
+				}
 			}
 			
-			// Âm thanh giọt nước rơi "tách"
+			sceneEl.addEventListener("arReady", () => {
+				tieuDe.innerText = "Sẵn sàng!";
+				tieuDe.style.color = "#38bdf8";
+				noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein";
+			});
+
+			sceneEl.addEventListener("arError", (event) => {
+				tieuDe.innerText = "Lỗi khởi động!";
+				tieuDe.style.color = "#ef4444";
+				noiDung.innerText = "Không thể tải file targets.mind hoặc camera bị chặn.";
+			});
+
 			function phatAmThanhGiotNuoc() {
 				try {
 					if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -148,8 +160,6 @@
 			const chatLongNaOH = document.querySelector('#chat-long-naoh');
 			const nhanNaOH = document.querySelector('#nhan-naoh');
 			const giotChiThi = document.querySelector('#giot-chi-thi');
-			const tieuDe = document.querySelector('#tieu-de');
-			const noiDung = document.querySelector('#noi-dung');
 			
 			let daXayRaPhanUng = false;
 			
@@ -162,7 +172,6 @@
 					const viTriPhenol = thePhenol.object3D.position;
 					const khoangCach = viTriNaOH.distanceTo(viTriPhenol);
 					
-					// Khi 2 thẻ lại gần nhau dưới 0.65m
 					if (khoangCach < 0.65 && !daXayRaPhanUng) {
 						daXayRaPhanUng = true;
 						
@@ -170,14 +179,12 @@
 						tieuDe.style.color = "#ec4899";
 						noiDung.innerText = "Dung dịch NaOH chuyển từ không màu sang màu HỒNG CÁNH SEN đặc trưng!";
 						
-						// Đổi màu dung dịch trong cốc sang Hồng cánh sen (#db2777)
 						chatLongNaOH.setAttribute('material', {
 							color: '#db2777',
 							opacity: 0.85,
 							transparent: true
 						});
 						
-						// Đổi màu giọt thuốc thử
 						giotChiThi.setAttribute('material', {
 							color: '#db2777',
 							opacity: 0.9,
@@ -193,7 +200,6 @@
 				} else if (!thayNaOH && !thayPhenol) {
 					if (daXayRaPhanUng) {
 						daXayRaPhanUng = false;
-						// Reset về trạng thái trong suốt ban đầu
 						chatLongNaOH.setAttribute('material', {
 							color: '#e2e8f0',
 							opacity: 0.55,
@@ -207,7 +213,7 @@
 						nhanNaOH.setAttribute('value', 'dd NaOH (Trong suot)');
 						nhanNaOH.setAttribute('color', '#38bdf8');
 						
-						tieuDe.innerText = "Đang tìm thẻ...";
+						tieuDe.innerText = "Sẵn sàng!";
 						tieuDe.style.color = "#38bdf8";
 						noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau";
 					}
