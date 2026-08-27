@@ -62,40 +62,49 @@
 				<!-- Đáy cốc -->
 				<a-cylinder position="0 -0.07 0" radius="0.18" height="0.015" 
 					material="color: #ffffff; opacity: 0.6; transparent: true"></a-cylinder>
-				<!-- Miệng cốc có viền loe -->
+				<!-- Miệng cốc -->
 				<a-torus position="0 0.31 0" rotation="90 0 0" radius="0.18" radius-tubular="0.01" 
 					material="color: #ffffff; opacity: 0.7; transparent: true"></a-torus>
 				
-				<!-- Khối dung dịch NaOH bên trong cốc -->
+				<!-- Khối dung dịch NaOH bên trong cốc (Ban đầu trắng trong suốt) -->
 				<a-cylinder id="chat-long-naoh" position="0 0.05 0" radius="0.17" height="0.25" 
 					material="color: #f1f5f9; opacity: 0.75; transparent: true; shader: flat"></a-cylinder>
 				
 				<a-text value="dd NaOH (Trong suot)" id="nhan-naoh" position="0 0.48 0" align="center" scale="0.55 0.55 0.55" color="#38bdf8"></a-text>
 			</a-entity>
 			
-			<!-- THẺ 1: Ống nhỏ giọt Pipet Phenolphthalein -->
+			<!-- THẺ 1: Ống nhỏ giọt Phenolphthalein -->
+			<!-- z=0.28 đưa pipet ra PHÍA TRƯỚC thành cốc để không bị thân cốc che -->
 			<a-entity id="the-phenol" mindar-image-target="targetIndex: 1">
-				<!-- Núm bóp cao su màu đỏ -->
-				<a-sphere position="0 0.4 0" radius="0.055" scale="1 1.25 1" material="color: #dc2626; shader: flat"></a-sphere>
-				<!-- Cổ ống nối -->
-				<a-cylinder position="0 0.3 0" radius="0.015" height="0.05" material="color: #cbd5e1"></a-cylinder>
-				<!-- Thân ống hút thủy tinh -->
-				<a-cylinder position="0 0.16 0" radius="0.024" height="0.24" material="color: #ffffff; opacity: 0.55; transparent: true"></a-cylinder>
-				<!-- Đầu vuốt nhọn -->
-				<a-cone position="0 0.01 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.08" material="color: #ffffff; opacity: 0.55; transparent: true"></a-cone>
-				
-				<!-- Giọt thuốc thử rơi xuống -->
-				<a-sphere id="giot-chi-thi" position="0 -0.05 0" radius="0.02" material="color: #ffffff; opacity: 0.85; transparent: true"
-					animation="property: position; to: 0 -0.28 0; dur: 750; loop: true; easing: easeInQuad">
-				</a-sphere>
-				
-				<a-text value="Phenolphthalein" position="0 0.55 0" align="center" scale="0.55 0.55 0.55" color="#ec4899"></a-text>
+				<a-entity id="pipet-tha-xuong" position="0 0.22 0.28">
+					<!-- Núm bóp -->
+					<a-sphere position="0 0.36 0" radius="0.055" scale="1 1.25 1"
+						material="color: #dc2626; shader: flat"></a-sphere>
+					<!-- Cổ ống -->
+					<a-cylinder position="0 0.26 0" radius="0.015" height="0.05"
+						material="color: #cbd5e1"></a-cylinder>
+					<!-- Thân pipet -->
+					<a-cylinder position="0 0.12 0" radius="0.024" height="0.24"
+						material="color: #ffffff; opacity: 0.58; transparent: true"></a-cylinder>
+					<!-- Đầu pipet nằm sát miệng cốc -->
+					<a-cone position="0 -0.03 0" rotation="180 0 0" radius-bottom="0.024"
+						radius-top="0.007" height="0.08"
+						material="color: #ffffff; opacity: 0.62; transparent: true"></a-cone>
+
+					<!-- Giọt đứng đúng tại đầu pipet, CHƯA đổi màu -->
+					<a-sphere id="giot-chi-thi" position="0 -0.085 0" radius="0.022"
+						material="color: #ffffff; opacity: 0.95; transparent: true"></a-sphere>
+				</a-entity>
+
+				<a-text value="Phenolphthalein" position="0 0.63 0.28" align="center"
+					scale="0.55 0.55 0.55" color="#ec4899"></a-text>
 			</a-entity>
 		</a-scene>
 		
 		<script>
 			let audioCtx = null;
 			let giongNoiChuan = null;
+			let timerDoiMau = null;
 			
 			function layGiongDoc() {
 				if ('speechSynthesis' in window) {
@@ -123,7 +132,6 @@
 				}
 			}
 			
-			// Âm thanh giọt nước rơi "tách"
 			function phatAmThanhGiotNuoc() {
 				try {
 					if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -167,66 +175,127 @@
 			const noiDung = document.querySelector('#noi-dung');
 			
 			let daXayRaPhanUng = false;
-			
+			let dangThaGiot = false;
+
+			function datGiotVeDauPipet() {
+				giotChiThi.removeAttribute('animation');
+				giotChiThi.setAttribute('position', '0 -0.085 0');
+				giotChiThi.setAttribute('material', {
+					color: '#ffffff',
+					opacity: 0.95,
+					transparent: true
+				});
+			}
+
+			function batDauNhoGiot() {
+				if (dangThaGiot) return;
+				dangThaGiot = true;
+
+				// Pipet nhấp nhả nhẹ đúng lúc bóp.
+			const pipet = document.querySelector('#pipet-tha-xuong');
+			pipet.setAttribute('animation__nhapnha',
+				'property: position; from: 0 0.22 0.28; to: 0 0.19 0.28; dir: alternate; dur: 260; loop: 2; easing: easeInOutQuad');
+
+				// Giọt bắt đầu ở ngay đầu vòi, sau đó rơi đúng vào mặt dung dịch.
+			// Mặt dung dịch: y = 0.05 + 0.25/2 = 0.175.
+			giotChiThi.setAttribute('position', '0 -0.085 0');
+			giotChiThi.setAttribute('animation__roi',
+				'property: position; from: 0 -0.085 0; to: 0 -0.145 0; dur: 650; easing: easeInQuad');
+
+			// KHÔNG đổi màu trước thời điểm giọt chạm mặt dung dịch.
+			setTimeout(() => {
+				if (!daXayRaPhanUng) return;
+
+				phatAmThanhGiotNuoc();
+
+				// Chỉ sau va chạm mới cho dung dịch chuyển màu mượt.
+				chatLongNaOH.removeAttribute('animation__doimau');
+				chatLongNaOH.setAttribute('animation__doimau',
+					'property: material.color; from: #f1f5f9; to: #db2777; dur: 1200; easing: easeInOutSine');
+				chatLongNaOH.setAttribute('material', {
+					color: '#f1f5f9',
+					opacity: 0.92,
+					transparent: true,
+					shader: 'flat'
+				});
+
+				// Tạo cảm giác giọt tan vào dung dịch rồi mới hồng.
+				giotChiThi.setAttribute('material', {
+					color: '#db2777',
+					opacity: 0.95,
+					transparent: true
+				});
+				giotChiThi.setAttribute('scale', '1.35 1.35 1.35');
+
+				tieuDe.innerText = "Giọt phenolphthalein đã chạm dung dịch";
+				tieuDe.style.color = "#ec4899";
+				noiDung.innerText = "NaOH bắt đầu chuyển màu mượt từ trong suốt sang HỒNG CÁNH SEN.";
+
+				nhanNaOH.setAttribute('value', 'dd NaOH dang doi mau...');
+				nhanNaOH.setAttribute('color', '#ec4899');
+
+				phatGiongNoi("Giọt phenolphthalein vừa chạm dung dịch natri hi-đrô-xít. Dung dịch bắt đầu chuyển dần sang màu hồng cánh sen.");
+			}, 650);
+			}
+
+			function resetThiNghiem() {
+				if (timerDoiMau) {
+					clearTimeout(timerDoiMau);
+					timerDoiMau = null;
+				}
+				dangThaGiot = false;
+				daXayRaPhanUng = false;
+
+				const pipet = document.querySelector('#pipet-tha-xuong');
+			pipet.removeAttribute('animation__nhapnha');
+
+				chatLongNaOH.removeAttribute('animation__doimau');
+				chatLongNaOH.setAttribute('material', {
+					color: '#f1f5f9',
+					opacity: 0.75,
+					transparent: true,
+					shader: 'flat'
+				});
+
+				datGiotVeDauPipet();
+				giotChiThi.setAttribute('scale', '1 1 1');
+
+				nhanNaOH.setAttribute('value', 'dd NaOH (Trong suot)');
+				nhanNaOH.setAttribute('color', '#38bdf8');
+
+				tieuDe.innerText = "Đang tìm thẻ...";
+				tieuDe.style.color = "#38bdf8";
+				noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau";
+			}
+
 			function theoDoiKhoangCach() {
 				const thayNaOH = theNaOH.object3D.visible;
 				const thayPhenol = thePhenol.object3D.visible;
-				
+
 				if (thayNaOH && thayPhenol) {
-					const viTriNaOH = theNaOH.object3D.position;
-					const viTriPhenol = thePhenol.object3D.position;
+					theNaOH.object3D.updateMatrixWorld();
+					thePhenol.object3D.updateMatrixWorld();
+
+					const viTriNaOH = new THREE.Vector3();
+					const viTriPhenol = new THREE.Vector3();
+					theNaOH.object3D.getWorldPosition(viTriNaOH);
+					thePhenol.object3D.getWorldPosition(viTriPhenol);
+
 					const khoangCach = viTriNaOH.distanceTo(viTriPhenol);
-					
-					// Khi 2 thẻ lại gần nhau
+
 					if (khoangCach < 0.65 && !daXayRaPhanUng) {
 						daXayRaPhanUng = true;
-						
-						tieuDe.innerText = "Dung dịch kiềm đổi màu chỉ thị";
-						tieuDe.style.color = "#ec4899";
-						noiDung.innerText = "Dung dịch NaOH chuyển từ không màu sang màu HỒNG CÁNH SEN đặc trưng!";
-						
-						// Đổi màu dung dịch trong cốc sang hồng cánh sen
-						chatLongNaOH.setAttribute('material', {
-							color: '#db2777',
-							opacity: 0.92,
-							transparent: true
-						});
-						
-						// Đổi màu giọt thuốc thử sang hồng
-						giotChiThi.setAttribute('material', {
-							color: '#db2777',
-							opacity: 0.92,
-							transparent: true
-						});
-						
-						nhanNaOH.setAttribute('value', 'dd NaOH hoa HONG!');
-						nhanNaOH.setAttribute('color', '#ec4899');
-						
-						phatAmThanhGiotNuoc();
-						phatGiongNoi("Nhỏ dung dịch phenolphthalein không màu vào dung dịch natri hi-đrô-xít, môi trường kiềm làm dung dịch lập tức chuyển sang màu hồng cánh sen rực rỡ!");
-					}
-				} else if (!thayNaOH && !thayPhenol) {
-					if (daXayRaPhanUng) {
-						daXayRaPhanUng = false;
-						// Reset về trạng thái ban đầu
-						chatLongNaOH.setAttribute('material', {
-							color: '#f1f5f9',
-							opacity: 0.75,
-							transparent: true
-						});
-						giotChiThi.setAttribute('material', {
-							color: '#ffffff',
-							opacity: 0.85,
-							transparent: true
-						});
-						nhanNaOH.setAttribute('value', 'dd NaOH (Trong suot)');
-						nhanNaOH.setAttribute('color', '#38bdf8');
-						
-						tieuDe.innerText = "Đang tìm thẻ...";
+
+						tieuDe.innerText = "Đang nhỏ Phenolphthalein vào NaOH...";
 						tieuDe.style.color = "#38bdf8";
-						noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau";
+						noiDung.innerText = "Giọt đang rơi từ đầu pipet xuống mặt dung dịch. Chưa chạm thì NaOH vẫn trong suốt.";
+
+						batDauNhoGiot();
 					}
+				} else if (!thayNaOH && !thayPhenol && daXayRaPhanUng) {
+					resetThiNghiem();
 				}
+
 				requestAnimationFrame(theoDoiKhoangCach);
 			}
 			
