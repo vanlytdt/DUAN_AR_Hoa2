@@ -66,30 +66,32 @@
 					material="color: #f8fafc; opacity: 0.78; transparent: true; shader: flat"></a-cylinder>
 				<a-circle id="mat-dung-dich" position="0 0.175 0" rotation="-90 0 0" radius="0.165"
 					material="color: #f8fafc; opacity: 0.82; transparent: true; shader: flat"></a-circle>
-
-				<!-- Pipet neo theo CỐC để luôn nằm ngay trên miệng cốc -->
-				<a-entity id="pipet-tha-xuong" position="0 0.66 0.06">
-					<a-sphere id="bop-pipet" position="0 0.18 0" radius="0.055" scale="1 1.25 1"
-						material="color: #dc2626; shader: flat"></a-sphere>
-					<a-cylinder position="0 0.08 0" radius="0.015" height="0.05" material="color: #cbd5e1"></a-cylinder>
-					<a-cylinder position="0 -0.06 0" radius="0.024" height="0.24"
-						material="color: #ffffff; opacity: 0.58; transparent: true"></a-cylinder>
-					<a-cone position="0 -0.21 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.08"
-						material="color: #ffffff; opacity: 0.62; transparent: true"></a-cone>
-					<a-sphere id="giot-chi-thi" visible="false" position="0 -0.265 0" radius="0.022"
-						material="color: #f8fafc; opacity: 0.98; transparent: true; shader: flat"></a-sphere>
-				</a-entity>
 				<a-text value="dd NaOH (Trong suot)" id="nhan-naoh" position="0 0.48 0" align="center"
 					scale="0.55 0.55 0.55" color="#38bdf8"></a-text>
 			</a-entity>
 
-			<!-- THẺ 1: chỉ dùng để nhận diện Phenolphthalein -->
+			<!-- THẺ 1: Ống nhỏ giọt Phenolphthalein.
+			     QUAN TRỌNG: pipet thuộc marker Phenolphthalein, KHÔNG thuộc marker NaOH. -->
 			<a-entity id="the-phenol" mindar-image-target="targetIndex: 1">
-				<a-text value="Phenolphthalein" position="0 0.40 0.28" align="center"
+				<!-- Pipet nằm thấp, phía trước marker, chỉ xuất hiện khi THẺ PHENOL được nhận diện -->
+				<a-entity id="pipet-tha-xuong" position="0 0.34 0.12">
+					<a-sphere id="bop-pipet" position="0 0.20 0" radius="0.055" scale="1 1.25 1"
+						material="color: #dc2626; shader: flat"></a-sphere>
+					<a-cylinder position="0 0.10 0" radius="0.015" height="0.05"
+						material="color: #cbd5e1"></a-cylinder>
+					<a-cylinder position="0 -0.05 0" radius="0.024" height="0.25"
+						material="color: #ffffff; opacity: 0.58; transparent: true"></a-cylinder>
+					<a-cone position="0 -0.22 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.09"
+						material="color: #ffffff; opacity: 0.62; transparent: true"></a-cone>
+					<!-- Giọt ban đầu ẩn, chỉ hiện khi pipet bắt đầu nhỏ -->
+					<a-sphere id="giot-chi-thi" visible="false" position="0 -0.285 0" radius="0.023"
+						material="color: #f8fafc; opacity: 0.98; transparent: true; shader: flat"></a-sphere>
+				</a-entity>
+				<a-text value="Phenolphthalein" position="0 0.63 0.12" align="center"
 					scale="0.55 0.55 0.55" color="#ec4899"></a-text>
 			</a-entity>
 
-		</a-scene>
+			</a-scene>
 		
 		<script>
 			let audioCtx = null;
@@ -171,7 +173,7 @@
 			function datGiotVeDauPipet() {
 				giotChiThi.removeAttribute('animation__roi');
 				giotChiThi.setAttribute('visible', false);
-				giotChiThi.setAttribute('position', '0 -0.265 0');
+				giotChiThi.setAttribute('position', '0 -0.285 0');
 				giotChiThi.setAttribute('scale', '1 1 1');
 				giotChiThi.setAttribute('material', 'color: #f8fafc; opacity: 0.98; transparent: true; shader: flat');
 			}
@@ -199,13 +201,13 @@
 				const bop=document.querySelector('#bop-pipet');
 
 				// Hạ pipet thật rõ, đầu vòi tiến sát mặt nước.
-				pipet.setAttribute('animation__ha','property: position; from: 0 0.66 0.06; to: 0 0.43 0.06; dur: 700; easing: easeInOutCubic');
+				pipet.setAttribute('animation__ha','property: position; from: 0 0.34 0.12; to: 0 0.30 0.12; dur: 700; easing: easeInOutCubic');
 				bop.setAttribute('animation__bop','property: scale; from: 1 1.25 1; to: 0.82 1.05 0.82; dir: alternate; dur: 180; loop: 2; easing: easeInOutQuad');
 
 				setTimeout(()=>{
 					giotChiThi.setAttribute('visible',true);
-					giotChiThi.setAttribute('position','0 -0.265 0');
-					giotChiThi.setAttribute('animation__roi','property: position; from: 0 -0.265 0; to: 0 -0.445 0; dur: 1100; easing: easeInQuad');
+					giotChiThi.setAttribute('position','0 -0.285 0');
+					giotChiThi.setAttribute('animation__roi','property: position; from: 0 -0.265 0; to: 0 -0.62 0; dur: 1200; easing: easeInQuad');
 					setTimeout(()=>{
 						if(!daXayRaPhanUng) return;
 						phatAmThanhGiotNuoc();
@@ -239,6 +241,7 @@
 				matDungDich.setAttribute('material', 'color: #f8fafc; opacity: 0.82; transparent: true; shader: flat');
 
 				datGiotVeDauPipet();
+				giotChiThi.setAttribute('visible', 'false');
 				giotChiThi.setAttribute('scale', '1 1 1');
 
 				nhanNaOH.setAttribute('value', 'dd NaOH (Trong suot)');
