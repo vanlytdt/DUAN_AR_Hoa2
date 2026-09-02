@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#081225" />
-  <title>PHT-V5 — AR NaOH và phenolphthalein</title>
+  <title>PHT-V6 — AR NaOH và phenolphthalein</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
@@ -144,19 +144,6 @@
       gap: 8px;
     }
 
-    #result {
-      display: none;
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      border: 1px solid rgba(244, 114, 182, 0.42);
-      border-radius: 12px;
-      color: #ffe4f0;
-      background: rgba(190, 24, 93, 0.22);
-      font-size: 13px;
-      line-height: 1.42;
-    }
-
-    #result strong { color: #ff91c1; }
     .hidden { display: none !important; }
 
     #distance-debug {
@@ -389,7 +376,6 @@
           });
         }, 520);
 
-        document.querySelector('#result').style.display = 'block';
         window.clearTimeout(this.toastTimer);
         this.reactionToast.classList.add('show');
         this.toastTimer = window.setTimeout(() => {
@@ -422,7 +408,6 @@
         this.pulse.setAttribute('visible', false);
         this.pulse.setAttribute('scale', '0.2 0.2 0.2');
         this.pulse.setAttribute('material', 'opacity', 0.8);
-        document.querySelector('#result').style.display = 'none';
         updateStatus('Đã đặt lại thí nghiệm', 'Quét đủ hai thẻ và đưa chúng lại gần nhau.', 'searching');
       },
 
@@ -445,7 +430,7 @@
   </script>
 </head>
 <body>
-  <div id="build-badge">PHT-V5</div>
+  <div id="build-badge">PHT-V6</div>
   <div id="screen-drop" aria-hidden="true"></div>
   <div id="reaction-toast" role="status" aria-live="assertive">
     <strong>Phản ứng xảy ra</strong>
@@ -472,7 +457,6 @@
       <div id="chip-naoh" class="target-chip">① Thẻ NaOH</div>
       <div id="chip-phenol" class="target-chip">② Thẻ Phenolphthalein</div>
     </div>
-    <div id="result"><strong>Hiện tượng:</strong> Trong môi trường kiềm, phenolphthalein chuyển sang dạng có màu hồng. Đây là hiện tượng đổi màu của chất chỉ thị, không phải tạo kết tủa.</div>
     <div class="button-row">
       <button class="primary-button" type="button" onclick="runReaction()">Kiểm tra hiệu ứng</button>
       <button class="secondary-button" type="button" onclick="resetReaction()">Làm lại</button>
@@ -483,7 +467,7 @@
   <a-scene
     id="ar-scene"
     reaction-controller
-    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v5.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v6.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
     color-space="sRGB"
     renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
     vr-mode-ui="enabled: false"
@@ -618,7 +602,7 @@
         startButton.disabled = false;
         startButton.textContent = 'Tải lại trang để thử';
         startButton.dataset.action = 'reload';
-        updateStatus('Khởi động camera quá lâu', 'Kiểm tra quyền camera và file targets_naoh_phenolphthalein_v5.mind trong cùng thư mục.', 'error');
+        updateStatus('Khởi động camera quá lâu', 'Kiểm tra quyền camera và file targets_naoh_phenolphthalein_v6.mind trong cùng thư mục.', 'error');
       }, 15000);
     }
 
@@ -664,7 +648,7 @@
       startButton.dataset.action = 'start';
       const reason = event.detail && event.detail.error === 'VIDEO_FAIL'
         ? 'Không truy cập được camera. Hãy cấp quyền camera và mở trang bằng HTTPS.'
-        : 'Không tải được targets_naoh_phenolphthalein_v5.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
+        : 'Không tải được targets_naoh_phenolphthalein_v6.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
       updateStatus('Không thể khởi động AR', reason, 'error');
       statusPanel.style.display = 'block';
     });
