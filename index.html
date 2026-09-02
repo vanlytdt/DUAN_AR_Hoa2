@@ -1,336 +1,470 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-		<title>AR Hóa Học - NaOH Đổi Màu Với Phenolphthalein</title>
-		<script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-		<style>
-			body { margin: 0; overflow: hidden; font-family: sans-serif; }
-			#bang-thong-bao {
-				position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-				background: rgba(15, 23, 42, 0.95); color: white; padding: 12px 20px;
-				border-radius: 12px; text-align: center; z-index: 9999; font-size: 14px;
-				width: 85%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-				border: 1px solid rgba(255,255,255,0.18);
-			}
-			#tieu-de { font-weight: bold; color: #38bdf8; font-size: 16px; margin-bottom: 4px; }
-			
-			#lop-kich-hoat {
-				position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-				background: rgba(15, 23, 42, 0.97); z-index: 99999; display: flex;
-				flex-direction: column; justify-content: center; align-items: center; color: white;
-			}
-			#btn-kich-hoat {
-				padding: 14px 28px; font-size: 16px; font-weight: bold;
-				background: #ec4899; color: #ffffff; border: none;
-				border-radius: 30px; cursor: pointer; margin-top: 15px;
-				box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
-			}
-		</style>
-	</head>
-	<body>
-		
-		<div id="lop-kich-hoat">
-			<h2 style="margin: 0; font-size: 20px; color: #ec4899;">PHÒNG THÍ NGHIỆM AR</h2>
-			<p style="color: #94a3b8; font-size: 14px; margin-top: 8px;">Nhận biết Môi trường Kiềm (NaOH + Phenolphthalein)</p>
-			<button id="btn-kich-hoat" onclick="moKhoaTraiNghiem()">BẮT ĐẦU TRẢI NGHIỆM</button>
-		</div>
-		
-		<div id="bang-thong-bao">
-			<div id="tieu-de">Đang tìm thẻ...</div>
-			<div id="noi-dung">Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau</div>
-		</div>
-		
-		<a-scene 
-			mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: true; filterMinCF:0.001; filterBeta: 1000;" 
-			color-space="sRGB" 
-			vr-mode-ui="enabled: false" 
-			device-orientation-permission-ui="enabled: false">
-			
-			<a-light type="ambient" color="#ffffff" intensity="1.4"></a-light>
-			<a-light type="directional" color="#ffffff" intensity="1.0" position="1 3 2"></a-light>
-			
-			<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-			
-			<!-- THẺ 0: Cốc thủy tinh đựng dung dịch NaOH -->
-			<a-entity id="the-naoh" mindar-image-target="targetIndex: 0">
-				<a-cylinder position="0 0.12 0" radius="0.18" height="0.38" open-ended="true"
-					material="color: #ffffff; opacity: 0.22; transparent: true; roughness: 0.1; side: double"></a-cylinder>
-				<a-cylinder position="0 -0.07 0" radius="0.18" height="0.015"
-					material="color: #ffffff; opacity: 0.6; transparent: true"></a-cylinder>
-				<a-torus position="0 0.31 0" rotation="90 0 0" radius="0.18" radius-tubular="0.01"
-					material="color: #ffffff; opacity: 0.7; transparent: true"></a-torus>
-				<a-cylinder id="chat-long-naoh" position="0 0.05 0" radius="0.17" height="0.25"
-					material="color: #f8fafc; opacity: 0.78; transparent: true; shader: flat"></a-cylinder>
-				<a-circle id="mat-dung-dich" position="0 0.175 0" rotation="-90 0 0" radius="0.165"
-					material="color: #f8fafc; opacity: 0.82; transparent: true; shader: flat"></a-circle>
-				<a-text value="dd NaOH (Trong suot)" id="nhan-naoh" position="0 0.48 0" align="center"
-					scale="0.55 0.55 0.55" color="#38bdf8"></a-text>
-			</a-entity>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#081225" />
+  <title>AR: NaOH và phenolphthalein</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-			<!-- THẺ 1: Ống nhỏ giọt Phenolphthalein.
-			     QUAN TRỌNG: pipet thuộc marker Phenolphthalein, KHÔNG thuộc marker NaOH. -->
-			<a-entity id="the-phenol" mindar-image-target="targetIndex: 1">
-				<!-- Pipet nằm thấp, phía trước marker, chỉ xuất hiện khi THẺ PHENOL được nhận diện -->
-				<a-entity id="pipet-tha-xuong" position="0 0.34 0.12">
-					<a-sphere id="bop-pipet" position="0 0.20 0" radius="0.055" scale="1 1.25 1"
-						material="color: #dc2626; shader: flat"></a-sphere>
-					<a-cylinder position="0 0.10 0" radius="0.015" height="0.05"
-						material="color: #cbd5e1"></a-cylinder>
-					<a-cylinder position="0 -0.05 0" radius="0.024" height="0.25"
-						material="color: #ffffff; opacity: 0.58; transparent: true"></a-cylinder>
-					<a-cone id="dau-pipet" position="0 -0.22 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.09"
-						material="color: #ffffff; opacity: 0.62; transparent: true"></a-cone>
-					<!-- Giọt ban đầu ẩn, chỉ hiện khi pipet bắt đầu nhỏ -->
-					<a-sphere id="giot-chi-thi" visible="false" position="0 -0.285 0" radius="0.023"
-						material="color: #f8fafc; opacity: 0.98; transparent: true; shader: flat"></a-sphere>
-				</a-entity>
-				<a-text value="Phenolphthalein" position="0 0.63 0.12" align="center"
-					scale="0.55 0.55 0.55" color="#ec4899"></a-text>
-			</a-entity>
+    * { box-sizing: border-box; }
 
-			</a-scene>
-		
-		<script>
-			let audioCtx = null;
-			let giongNoiChuan = null;
-			let timerDoiMau = null;
-			
-			function layGiongDoc() {
-				if ('speechSynthesis' in window) {
-					const voices = window.speechSynthesis.getVoices();
-					giongNoiChuan = voices.find(v => v.lang.includes('vi')) || null;
-				}
-			}
-			if ('speechSynthesis' in window) {
-				layGiongDoc();
-				window.speechSynthesis.onvoiceschanged = layGiongDoc;
-			}
-			
-			function moKhoaTraiNghiem() {
-				document.getElementById('lop-kich-hoat').style.display = 'none';
-				try {
-					if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-					if (audioCtx.state === 'suspended') audioCtx.resume();
-				} catch (e) {}
-				
-				if ('speechSynthesis' in window) {
-					window.speechSynthesis.cancel();
-					const amThanhMoDau = new SpeechSynthesisUtterance('');
-					window.speechSynthesis.speak(amThanhMoDau);
-					layGiongDoc();
-				}
-			}
-			
-			function phatAmThanhGiotNuoc() {
-				try {
-					if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-					if (audioCtx.state === 'suspended') audioCtx.resume();
-					
-					const osc = audioCtx.createOscillator();
-					const gain = audioCtx.createGain();
-					
-					osc.type = 'sine';
-					osc.frequency.setValueAtTime(650, audioCtx.currentTime);
-					osc.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.08);
-					
-					gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-					gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
-					
-					osc.connect(gain);
-					gain.connect(audioCtx.destination);
-					
-					osc.start();
-					osc.stop(audioCtx.currentTime + 0.12);
-				} catch(e) {}
-			}
-			
-			function phatGiongNoi(cauNoi) {
-				if ('speechSynthesis' in window) {
-					window.speechSynthesis.cancel();
-					const msg = new SpeechSynthesisUtterance(cauNoi);
-					msg.lang = 'vi-VN';
-					if (giongNoiChuan) msg.voice = giongNoiChuan;
-					msg.rate = 0.95;
-					window.speechSynthesis.speak(msg);
-				}
-			}
-			
-			const theNaOH = document.querySelector('#the-naoh');
-			const thePhenol = document.querySelector('#the-phenol');
-			const chatLongNaOH = document.querySelector('#chat-long-naoh');
-			const nhanNaOH = document.querySelector('#nhan-naoh');
-			const giotChiThi = document.querySelector('#giot-chi-thi');
-			const matDungDich = document.querySelector('#mat-dung-dich');
-			const dauPipet = document.querySelector('#dau-pipet');
-			const tieuDe = document.querySelector('#tieu-de');
-			const noiDung = document.querySelector('#noi-dung');
-			
-			let daXayRaPhanUng = false;
-			let dangThaGiot = false;
-			let dangThayNaOH = false;
-			let dangThayPhenol = false;
-			let soKhungGanNhau = 0;
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #081225;
+    }
 
-			function datGiotVeDauPipet() {
-				giotChiThi.removeAttribute('animation__roi');
-				giotChiThi.setAttribute('visible', false);
-				giotChiThi.setAttribute('position', '0 -0.285 0');
-				giotChiThi.setAttribute('scale', '1 1 1');
-				giotChiThi.setAttribute('material', 'color: #f8fafc; opacity: 0.98; transparent: true; shader: flat');
-			}
+    button { font: inherit; }
 
-			function mauHex(t) {
-				const a=[248,250,252], b=[219,39,119];
-				return '#' + [0,1,2].map(i=>Math.round(a[i]+(b[i]-a[i])*t).toString(16).padStart(2,'0')).join('');
-			}
+    .panel {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      width: min(92vw, 560px);
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 18px;
+      color: #f8fbff;
+      background: rgba(7, 18, 39, 0.82);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
 
-			function doiMauNaOH() {
-				const start=performance.now(), duration=1400;
-				function frame(now) {
-					const t=Math.min(1,(now-start)/duration), e=t*t*(3-2*t), c=mauHex(e);
-					chatLongNaOH.setAttribute('material','color',c);
-					matDungDich.setAttribute('material','color',c);
-					if(t<1) requestAnimationFrame(frame);
-				}
-				requestAnimationFrame(frame);
-			}
+    #start-panel {
+      top: 50%;
+      padding: 24px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
 
-			function batDauNhoGiot() {
-				if (dangThaGiot) return;
-				dangThaGiot=true;
-				const pipet=document.querySelector('#pipet-tha-xuong');
-				const bop=document.querySelector('#bop-pipet');
+    #start-panel h1 {
+      margin: 0 0 8px;
+      font-size: clamp(23px, 5vw, 34px);
+      line-height: 1.08;
+    }
 
-				// Hạ pipet thật rõ, đầu vòi tiến sát mặt nước.
-				pipet.setAttribute('animation__ha','property: position; from: 0 0.34 0.12; to: 0 0.30 0.12; dur: 700; easing: easeInOutCubic');
-				bop.setAttribute('animation__bop','property: scale; from: 1 1.25 1; to: 0.82 1.05 0.82; dir: alternate; dur: 180; loop: 2; easing: easeInOutQuad');
+    #start-panel p {
+      margin: 0 0 18px;
+      color: #bed0ec;
+      line-height: 1.5;
+    }
 
-				setTimeout(()=>{
-					giotChiThi.setAttribute('visible',true);
-					giotChiThi.setAttribute('position','0 -0.285 0');
-					giotChiThi.setAttribute('animation__roi','property: position; from: 0 -0.265 0; to: 0 -0.62 0; dur: 1200; easing: easeInQuad');
-					setTimeout(()=>{
-						if(!daXayRaPhanUng) return;
-						phatAmThanhGiotNuoc();
-						giotChiThi.setAttribute('material','color: #db2777; opacity: 0.95; transparent: true; shader: flat');
-						giotChiThi.setAttribute('scale','1.4 0.65 1.4');
-						doiMauNaOH();
-						tieuDe.innerText='Giọt phenolphthalein đã chạm dung dịch';
-						tieuDe.style.color='#ec4899';
-						noiDung.innerText='NaOH đang chuyển dần từ trong suốt sang HỒNG CÁNH SEN.';
-						nhanNaOH.setAttribute('value','dd NaOH → HỒNG CÁNH SEN');
-						nhanNaOH.setAttribute('color','#ec4899');
-						phatGiongNoi('Giọt phenolphthalein vừa chạm dung dịch natri hi-đrô-xít. Dung dịch bắt đầu chuyển dần sang màu hồng cánh sen.');
-					},1100);
-				},700);
-			}
+    .primary-button, .secondary-button {
+      min-height: 48px;
+      padding: 11px 18px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 800;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
 
-			function resetThiNghiem() {
-				if (timerDoiMau) {
-					clearTimeout(timerDoiMau);
-					timerDoiMau = null;
-				}
-				dangThaGiot = false;
-				daXayRaPhanUng = false;
+    .primary-button {
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #db2777);
+      box-shadow: 0 10px 26px rgba(37, 99, 235, 0.28);
+    }
 
-				const pipet = document.querySelector('#pipet-tha-xuong');
-			pipet.removeAttribute('animation__ha');
-				pipet.setAttribute('position', '0 0.34 0.12');
+    .secondary-button {
+      color: #dce9ff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+    }
 
-				chatLongNaOH.removeAttribute('animation__doimau');
-				chatLongNaOH.setAttribute('material', 'color: #f8fafc; opacity: 0.78; transparent: true; shader: flat');
-				matDungDich.setAttribute('material', 'color: #f8fafc; opacity: 0.82; transparent: true; shader: flat');
+    button:active { transform: scale(0.97); }
+    button:disabled { cursor: wait; opacity: 0.6; }
 
-				datGiotVeDauPipet();
-				giotChiThi.setAttribute('visible', 'false');
-				giotChiThi.setAttribute('scale', '1 1 1');
+    #status-panel {
+      top: max(12px, env(safe-area-inset-top));
+      display: none;
+      padding: 12px 14px;
+    }
 
-				nhanNaOH.setAttribute('value', 'dd NaOH (Trong suot)');
-				nhanNaOH.setAttribute('color', '#38bdf8');
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-				tieuDe.innerText = "Đang tìm thẻ...";
-				tieuDe.style.color = "#38bdf8";
-				noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau";
-			}
+    #status-dot {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #f59e0b;
+      box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.16);
+    }
 
-			// MindAR phát sự kiện targetFound/targetLost khi nhận diện hoặc mất từng thẻ.
-			theNaOH.addEventListener('targetFound', () => {
-				dangThayNaOH = true;
-				tieuDe.innerText = dangThayPhenol ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ NaOH';
-			});
+    #status-title { font-weight: 850; }
+    #status-detail { margin-top: 3px; color: #b8c8e2; font-size: 13px; }
 
-			theNaOH.addEventListener('targetLost', () => {
-				dangThayNaOH = false;
-				soKhungGanNhau = 0;
-			});
+    #control-panel {
+      bottom: max(14px, env(safe-area-inset-bottom));
+      display: none;
+      padding: 12px;
+    }
 
-			thePhenol.addEventListener('targetFound', () => {
-				dangThayPhenol = true;
-				tieuDe.innerText = dangThayNaOH ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ Phenolphthalein';
-			});
+    .target-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
 
-			thePhenol.addEventListener('targetLost', () => {
-				dangThayPhenol = false;
-				soKhungGanNhau = 0;
-			});
+    .target-chip {
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      color: #9fb0ca;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: center;
+    }
 
-			function theoDoiKhoangCach() {
-				if (dangThayNaOH && dangThayPhenol && !daXayRaPhanUng) {
-					// Cập nhật ma trận thế giới trước khi đo.
-					theNaOH.object3D.updateMatrixWorld(true);
-					thePhenol.object3D.updateMatrixWorld(true);
-					dauPipet.object3D.updateMatrixWorld(true);
-					matDungDich.object3D.updateMatrixWorld(true);
+    .target-chip.found {
+      color: #dcfce7;
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(34, 197, 94, 0.17);
+    }
 
-					const viTriDauPipet = new THREE.Vector3();
-					const viTriMatDungDich = new THREE.Vector3();
-					const viTriNaOH = new THREE.Vector3();
-					const viTriPhenol = new THREE.Vector3();
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
-					dauPipet.object3D.getWorldPosition(viTriDauPipet);
-					matDungDich.object3D.getWorldPosition(viTriMatDungDich);
-					theNaOH.object3D.getWorldPosition(viTriNaOH);
-					thePhenol.object3D.getWorldPosition(viTriPhenol);
+    #result {
+      display: none;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(244, 114, 182, 0.42);
+      border-radius: 12px;
+      color: #ffe4f0;
+      background: rgba(190, 24, 93, 0.22);
+      font-size: 13px;
+      line-height: 1.42;
+    }
 
-					const kcDauPipet = viTriDauPipet.distanceTo(viTriMatDungDich);
-					const kcHaiThe = viTriNaOH.distanceTo(viTriPhenol);
+    #result strong { color: #ff91c1; }
+    .hidden { display: none !important; }
 
-					// Hiện thông số để dễ kiểm tra trên máy tính/DevTools.
-					console.log('KC đầu pipet → mặt NaOH:', kcDauPipet.toFixed(3), ' | KC hai thẻ:', kcHaiThe.toFixed(3));
+    #distance-debug {
+      margin-top: 7px;
+      color: #7486a4;
+      font-size: 11px;
+      text-align: center;
+    }
 
-					// Điều kiện chính: đầu pipet gần mặt dung dịch.
-					// Điều kiện dự phòng: hai marker đủ gần nhau để tránh sai số pose của điện thoại.
-					const duGan = kcDauPipet < 0.32 || kcHaiThe < 1.05;
+    a-scene { position: fixed !important; inset: 0; }
+  </style>
+  <script>
+    AFRAME.registerComponent('reaction-controller', {
+      init() {
+        this.naohFound = false;
+        this.phenolFound = false;
+        this.nearSince = 0;
+        this.reacted = false;
+        this.lastDebugUpdate = 0;
+        this.worldA = new AFRAME.THREE.Vector3();
+        this.worldB = new AFRAME.THREE.Vector3();
 
-					if (duGan) {
-						soKhungGanNhau++;
-					} else {
-						soKhungGanNhau = 0;
-						noiDung.innerText = 'Di chuyển đầu pipet Phenolphthalein đến gần mặt dung dịch NaOH.';
-					}
+        this.naohTarget = document.querySelector('#target-naoh');
+        this.phenolTarget = document.querySelector('#target-phenol');
+        this.liquid = document.querySelector('#naoh-liquid');
+        this.surfacePoint = document.querySelector('#liquid-surface-point');
+        this.dropTip = document.querySelector('#drop-tip');
+        this.drop = document.querySelector('#drop-visual');
+        this.pulse = document.querySelector('#pink-pulse');
 
-					// Phải đủ gần liên tiếp vài khung hình để tránh kích hoạt do rung camera.
-					if (soKhungGanNhau >= 5) {
-						daXayRaPhanUng = true;
-						tieuDe.innerText = 'Đang nhỏ Phenolphthalein vào NaOH...';
-						tieuDe.style.color = '#38bdf8';
-						noiDung.innerText = 'Giọt đang rơi từ đầu pipet xuống mặt dung dịch.';
-						batDauNhoGiot();
-					}
-				}
+        this.naohTarget.addEventListener('targetFound', () => {
+          this.naohFound = true;
+          updateTargetUI('naoh', true);
+          updateStatus(this.phenolFound ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ NaOH', this.phenolFound ? 'Đưa thẻ Phenolphthalein lại gần cốc.' : 'Tiếp tục quét thẻ Phenolphthalein.', 'ready');
+        });
 
-				// Chỉ reset khi cả hai thẻ đều đã mất khỏi camera.
-				if (!dangThayNaOH && !dangThayPhenol && daXayRaPhanUng) {
-					resetThiNghiem();
-				}
+        this.naohTarget.addEventListener('targetLost', () => {
+          this.naohFound = false;
+          this.nearSince = 0;
+          updateTargetUI('naoh', false);
+          updateStatus('Mất thẻ NaOH', 'Đưa thẻ NaOH vào khung hình.', 'searching');
+        });
 
-				requestAnimationFrame(theoDoiKhoangCach);
-			}
+        this.phenolTarget.addEventListener('targetFound', () => {
+          this.phenolFound = true;
+          updateTargetUI('phenol', true);
+          updateStatus(this.naohFound ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ Phenolphthalein', this.naohFound ? 'Đưa đầu pipet lại gần cốc.' : 'Tiếp tục quét thẻ NaOH.', 'ready');
+        });
 
-			theoDoiKhoangCach();
-		</script>
-	</body>
+        this.phenolTarget.addEventListener('targetLost', () => {
+          this.phenolFound = false;
+          this.nearSince = 0;
+          updateTargetUI('phenol', false);
+          updateStatus('Mất thẻ Phenolphthalein', 'Đưa thẻ Phenolphthalein vào khung hình.', 'searching');
+        });
+
+        window.runReaction = () => this.react();
+        window.resetReaction = () => this.reset();
+      },
+
+      tick(time) {
+        if (this.reacted || !this.naohFound || !this.phenolFound) return;
+
+        this.surfacePoint.object3D.getWorldPosition(this.worldA);
+        this.dropTip.object3D.getWorldPosition(this.worldB);
+        const tipDistance = this.worldA.distanceTo(this.worldB);
+
+        this.naohTarget.object3D.getWorldPosition(this.worldA);
+        this.phenolTarget.object3D.getWorldPosition(this.worldB);
+        const markerDistance = this.worldA.distanceTo(this.worldB);
+
+        if (time - this.lastDebugUpdate > 250) {
+          document.querySelector('#distance-debug').textContent = `Đầu nhỏ → dung dịch: ${tipDistance.toFixed(2)} | Hai thẻ: ${markerDistance.toFixed(2)}`;
+          this.lastDebugUpdate = time;
+        }
+
+        const closeEnough = tipDistance < 0.42 || markerDistance < 1.05;
+        if (!closeEnough) {
+          this.nearSince = 0;
+          updateStatus('Đã nhận đủ hai thẻ', 'Đưa thẻ Phenolphthalein gần thẻ NaOH hơn.', 'ready');
+          return;
+        }
+
+        if (!this.nearSince) this.nearSince = time;
+        const holdTime = time - this.nearSince;
+        updateStatus('Đang nhỏ chỉ thị…', `Giữ ổn định ${Math.max(0, Math.ceil((650 - holdTime) / 100) / 10).toFixed(1)} giây.`, 'reacting');
+        if (holdTime >= 650) this.react();
+      },
+
+      react() {
+        if (this.reacted) return;
+        this.reacted = true;
+
+        this.drop.setAttribute('visible', true);
+        this.drop.setAttribute('position', '0 0.22 0');
+        this.drop.setAttribute('animation__fall', {
+          property: 'position',
+          to: '0 -0.34 0',
+          dur: 650,
+          easing: 'easeInQuad',
+        });
+
+        window.setTimeout(() => {
+          this.drop.setAttribute('visible', false);
+          this.animateLiquid('#d9f5ff', '#ec268f', 1100);
+          this.pulse.setAttribute('visible', true);
+          this.pulse.setAttribute('animation__grow', {
+            property: 'scale',
+            from: '0.2 0.2 0.2',
+            to: '1.5 1.5 1.5',
+            dur: 900,
+            easing: 'easeOutCubic',
+          });
+          this.pulse.setAttribute('animation__fade', {
+            property: 'material.opacity',
+            from: 0.8,
+            to: 0,
+            dur: 900,
+            easing: 'easeOutQuad',
+          });
+        }, 520);
+
+        document.querySelector('#result').style.display = 'block';
+        updateStatus('Phản ứng chỉ thị đã xảy ra', 'Dung dịch NaOH chuyển sang màu hồng cánh sen.', 'success');
+
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance('Dung dịch natri hiđroxit chuyển sang màu hồng khi có phenolphthalein.');
+          utterance.lang = 'vi-VN';
+          utterance.rate = 0.95;
+          window.speechSynthesis.speak(utterance);
+        }
+      },
+
+      reset() {
+        this.reacted = false;
+        this.nearSince = 0;
+        this.liquid.removeAttribute('animation__color');
+        this.liquid.setAttribute('material', 'color', '#d9f5ff');
+        this.drop.removeAttribute('animation__fall');
+        this.drop.setAttribute('visible', false);
+        this.pulse.removeAttribute('animation__grow');
+        this.pulse.removeAttribute('animation__fade');
+        this.pulse.setAttribute('visible', false);
+        this.pulse.setAttribute('scale', '0.2 0.2 0.2');
+        this.pulse.setAttribute('material', 'opacity', 0.8);
+        document.querySelector('#result').style.display = 'none';
+        updateStatus('Đã đặt lại thí nghiệm', 'Quét đủ hai thẻ và đưa chúng lại gần nhau.', 'searching');
+      },
+
+      animateLiquid(fromHex, toHex, duration) {
+        const from = new AFRAME.THREE.Color(fromHex);
+        const to = new AFRAME.THREE.Color(toHex);
+        const color = new AFRAME.THREE.Color();
+        const start = performance.now();
+
+        const frame = (now) => {
+          const progress = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          color.copy(from).lerp(to, eased);
+          this.liquid.setAttribute('material', 'color', `#${color.getHexString()}`);
+          if (progress < 1) requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      },
+    });
+  </script>
+</head>
+<body>
+  <section id="start-panel" class="panel" aria-live="polite">
+    <h1>NaOH + Phenolphthalein</h1>
+    <p>Quét hai thẻ AR và đưa đầu pipet lại gần cốc để quan sát dung dịch hóa hồng.</p>
+    <button id="start-button" class="primary-button" type="button">Bật camera AR</button>
+  </section>
+
+  <section id="status-panel" class="panel" aria-live="polite">
+    <div class="status-row">
+      <span id="status-dot"></span>
+      <div>
+        <div id="status-title">Đang khởi động camera…</div>
+        <div id="status-detail">Vui lòng cho phép trang sử dụng camera.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="control-panel" class="panel">
+    <div class="target-list">
+      <div id="chip-naoh" class="target-chip">① Thẻ NaOH</div>
+      <div id="chip-phenol" class="target-chip">② Thẻ Phenolphthalein</div>
+    </div>
+    <div id="result"><strong>Hiện tượng:</strong> Trong môi trường kiềm, phenolphthalein chuyển sang dạng có màu hồng. Đây là hiện tượng đổi màu của chất chỉ thị, không phải tạo kết tủa.</div>
+    <div class="button-row">
+      <button class="primary-button" type="button" onclick="runReaction()">Thử phản ứng</button>
+      <button class="secondary-button" type="button" onclick="resetReaction()">Làm lại</button>
+    </div>
+    <div id="distance-debug">Đang chờ nhận diện thẻ…</div>
+  </section>
+
+  <a-scene
+    id="ar-scene"
+    reaction-controller
+    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded>
+
+    <a-assets></a-assets>
+
+    <a-entity id="target-naoh" mindar-image-target="targetIndex: 0">
+      <a-entity position="0 0.04 0" scale="0.9 0.9 0.9">
+        <a-cylinder position="0 0.20 0" radius="0.31" height="0.42" open-ended="true"
+          material="color: #dbeafe; opacity: 0.22; transparent: true; side: double; metalness: 0.05; roughness: 0.1"></a-cylinder>
+        <a-torus position="0 0.41 0" rotation="90 0 0" radius="0.31" radius-tubular="0.012"
+          material="color: #dbeafe; opacity: 0.72; transparent: true"></a-torus>
+        <a-cylinder id="naoh-liquid" position="0 0.16 0" radius="0.285" height="0.14"
+          material="color: #d9f5ff; opacity: 0.72; transparent: true; roughness: 0.28"></a-cylinder>
+        <a-circle position="0 0.235 0" rotation="-90 0 0" radius="0.285"
+          material="color: #e8fbff; opacity: 0.65; transparent: true; side: double"></a-circle>
+        <a-entity id="liquid-surface-point" position="0 0.24 0"></a-entity>
+        <a-torus id="pink-pulse" visible="false" position="0 0.245 0" rotation="90 0 0" radius="0.19" radius-tubular="0.022" scale="0.2 0.2 0.2"
+          material="color: #ff2f92; opacity: 0.8; transparent: true"></a-torus>
+        <a-text value="NaOH" position="0 0.54 0" align="center" color="#dbeafe" width="2.0" side="double"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <a-entity id="target-phenol" mindar-image-target="targetIndex: 1">
+      <a-entity position="0 0.10 0" rotation="0 0 -18" scale="0.88 0.88 0.88">
+        <a-cylinder position="0 0.30 0" radius="0.10" height="0.20"
+          material="color: #db2777; roughness: 0.42"></a-cylinder>
+        <a-cylinder position="0 0.05 0" radius="0.035" height="0.34"
+          material="color: #f8fafc; opacity: 0.76; transparent: true; roughness: 0.08"></a-cylinder>
+        <a-cone id="drop-tip" position="0 -0.15 0" radius-bottom="0.032" radius-top="0.009" height="0.16"
+          material="color: #e2e8f0; opacity: 0.82; transparent: true"></a-cone>
+        <a-sphere id="drop-visual" visible="false" position="0 -0.24 0" radius="0.035" scale="0.8 1.25 0.8"
+          material="color: #f22c8d; opacity: 0.9; transparent: true"></a-sphere>
+        <a-text value="Phenolphthalein" position="0 0.51 0" rotation="0 0 18" align="center" color="#ffd6e9" width="2.1" side="double"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
+
+  <script>
+    const scene = document.querySelector('#ar-scene');
+    const startPanel = document.querySelector('#start-panel');
+    const startButton = document.querySelector('#start-button');
+    const statusPanel = document.querySelector('#status-panel');
+    const controlPanel = document.querySelector('#control-panel');
+    let cameraStarted = false;
+
+    function updateTargetUI(target, found) {
+      document.querySelector(`#chip-${target}`).classList.toggle('found', found);
+    }
+
+    function updateStatus(title, detail, state = 'searching') {
+      document.querySelector('#status-title').textContent = title;
+      document.querySelector('#status-detail').textContent = detail;
+      const colors = {
+        searching: '#f59e0b',
+        ready: '#38bdf8',
+        reacting: '#f472b6',
+        success: '#22c55e',
+        error: '#ef4444',
+      };
+      const color = colors[state] || colors.searching;
+      const dot = document.querySelector('#status-dot');
+      dot.style.background = color;
+      dot.style.boxShadow = `0 0 0 5px ${color}29`;
+    }
+
+    function startCamera() {
+      if (cameraStarted) return;
+      const system = scene.systems['mindar-image-system'];
+      if (!system) {
+        updateStatus('Chưa tải được MindAR', 'Kiểm tra kết nối Internet rồi tải lại trang.', 'error');
+        statusPanel.style.display = 'block';
+        return;
+      }
+
+      cameraStarted = true;
+      startButton.disabled = true;
+      startButton.textContent = 'Đang mở camera…';
+      statusPanel.style.display = 'block';
+      updateStatus('Đang khởi động camera…', 'Vui lòng cho phép trang sử dụng camera.', 'searching');
+      system.start();
+    }
+
+    startButton.addEventListener('click', startCamera);
+
+    scene.addEventListener('arReady', () => {
+      startPanel.classList.add('hidden');
+      statusPanel.style.display = 'block';
+      controlPanel.style.display = 'block';
+      updateStatus('Camera đã sẵn sàng', 'Quét thẻ NaOH trước, rồi quét thẻ Phenolphthalein.', 'searching');
+    });
+
+    scene.addEventListener('arError', (event) => {
+      cameraStarted = false;
+      startButton.disabled = false;
+      startButton.textContent = 'Thử bật lại camera';
+      const reason = event.detail && event.detail.error === 'VIDEO_FAIL'
+        ? 'Không truy cập được camera. Hãy cấp quyền camera và mở trang bằng HTTPS.'
+        : 'Không tải được targets.mind. Kiểm tra file nằm cùng thư mục với index.html.';
+      updateStatus('Không thể khởi động AR', reason, 'error');
+      statusPanel.style.display = 'block';
+    });
+  </script>
+</body>
 </html>
