@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#081225" />
-  <title>PHT-V4 — AR NaOH và phenolphthalein</title>
+  <title>PHT-V3 — AR NaOH và phenolphthalein</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
@@ -195,42 +195,6 @@
       box-shadow: 0 0 18px rgba(244, 63, 152, 0.72);
       transform: translate(-50%, -50%);
     }
-
-    #reaction-toast {
-      position: fixed;
-      z-index: 45;
-      top: calc(max(12px, env(safe-area-inset-top)) + 82px);
-      left: 50%;
-      width: min(88vw, 480px);
-      padding: 13px 16px;
-      border: 1px solid rgba(255, 185, 218, 0.68);
-      border-radius: 16px;
-      color: #fff7fb;
-      background: linear-gradient(135deg, rgba(190, 24, 93, 0.94), rgba(219, 39, 119, 0.94));
-      box-shadow: 0 14px 34px rgba(131, 24, 67, 0.42);
-      opacity: 0;
-      pointer-events: none;
-      transform: translate(-50%, -14px) scale(0.97);
-      transition: opacity 180ms ease, transform 180ms ease;
-    }
-
-    #reaction-toast.show {
-      opacity: 1;
-      transform: translate(-50%, 0) scale(1);
-    }
-
-    #reaction-toast strong {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 17px;
-    }
-
-    #reaction-toast span {
-      display: block;
-      color: #ffe4f0;
-      font-size: 13px;
-      line-height: 1.4;
-    }
   </style>
   <script>
     AFRAME.registerComponent('reaction-controller', {
@@ -253,8 +217,6 @@
         this.drop = document.querySelector('#drop-visual');
         this.pulse = document.querySelector('#pink-pulse');
         this.screenDrop = document.querySelector('#screen-drop');
-        this.reactionToast = document.querySelector('#reaction-toast');
-        this.toastTimer = null;
 
         this.naohTarget.addEventListener('targetFound', () => {
           this.naohFound = true;
@@ -390,11 +352,6 @@
         }, 520);
 
         document.querySelector('#result').style.display = 'block';
-        window.clearTimeout(this.toastTimer);
-        this.reactionToast.classList.add('show');
-        this.toastTimer = window.setTimeout(() => {
-          this.reactionToast.classList.remove('show');
-        }, 4500);
         updateStatus('Phản ứng chỉ thị đã xảy ra', 'Dung dịch NaOH chuyển sang màu hồng cánh sen.', 'success');
 
         if ('speechSynthesis' in window) {
@@ -415,8 +372,6 @@
         this.drop.setAttribute('visible', false);
         this.screenDrop.getAnimations().forEach((animation) => animation.cancel());
         this.screenDrop.style.display = 'none';
-        window.clearTimeout(this.toastTimer);
-        this.reactionToast.classList.remove('show');
         this.pulse.removeAttribute('animation__grow');
         this.pulse.removeAttribute('animation__fade');
         this.pulse.setAttribute('visible', false);
@@ -445,12 +400,8 @@
   </script>
 </head>
 <body>
-  <div id="build-badge">PHT-V4</div>
+  <div id="build-badge">PHT-V3</div>
   <div id="screen-drop" aria-hidden="true"></div>
-  <div id="reaction-toast" role="status" aria-live="assertive">
-    <strong>Phản ứng xảy ra</strong>
-    <span>Phenolphthalein làm dung dịch NaOH chuyển sang màu hồng.</span>
-  </div>
   <section id="start-panel" class="panel" aria-live="polite">
     <h1>NaOH + Phenolphthalein</h1>
     <p>Quét hai thẻ AR, đặt đầu pipet phenolphthalein phía trên và thẳng tâm cốc NaOH để quan sát dung dịch hóa hồng.</p>
@@ -483,7 +434,7 @@
   <a-scene
     id="ar-scene"
     reaction-controller
-    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v4.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v3.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
     color-space="sRGB"
     renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
     vr-mode-ui="enabled: false"
@@ -575,7 +526,6 @@
 
     scene.addEventListener('arReady', () => {
       startPanel.classList.add('hidden');
-      document.querySelector('#build-badge').style.display = 'none';
       statusPanel.style.display = 'block';
       controlPanel.style.display = 'block';
       updateStatus('Camera đã sẵn sàng', 'Quét thẻ NaOH trước, rồi quét thẻ Phenolphthalein.', 'searching');
@@ -587,7 +537,7 @@
       startButton.textContent = 'Thử bật lại camera';
       const reason = event.detail && event.detail.error === 'VIDEO_FAIL'
         ? 'Không truy cập được camera. Hãy cấp quyền camera và mở trang bằng HTTPS.'
-        : 'Không tải được targets_naoh_phenolphthalein_v4.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
+        : 'Không tải được targets_naoh_phenolphthalein_v3.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
       updateStatus('Không thể khởi động AR', reason, 'error');
       statusPanel.style.display = 'block';
     });
