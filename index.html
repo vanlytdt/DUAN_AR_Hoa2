@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#081225" />
-  <title>PHT-V6 — AR NaOH và phenolphthalein</title>
+  <title>PHT-V7 — AR NaOH và phenolphthalein</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
@@ -178,8 +178,8 @@
       height: 23px;
       border-radius: 55% 55% 62% 62%;
       pointer-events: none;
-      background: radial-gradient(circle at 35% 28%, #ffd4e9 0 12%, #f43f98 34%, #be185d 100%);
-      box-shadow: 0 0 18px rgba(244, 63, 152, 0.72);
+      background: radial-gradient(circle at 35% 28%, #fff0f8 0 12%, #ff9bce 38%, #ff69b4 100%);
+      box-shadow: 0 0 18px rgba(255, 105, 180, 0.58);
       transform: translate(-50%, -50%);
     }
 
@@ -358,7 +358,7 @@
         window.setTimeout(() => {
           this.screenDrop.getAnimations().forEach((animation) => animation.cancel());
           this.screenDrop.style.display = 'none';
-          this.animateLiquid('#d9f5ff', '#ec268f', 1100);
+          this.animateLiquid('#d9f5ff', '#ff8fc7', 1100);
           this.pulse.setAttribute('visible', true);
           this.pulse.setAttribute('animation__grow', {
             property: 'scale',
@@ -430,7 +430,7 @@
   </script>
 </head>
 <body>
-  <div id="build-badge">PHT-V6</div>
+  <div id="build-badge">PHT-V7</div>
   <div id="screen-drop" aria-hidden="true"></div>
   <div id="reaction-toast" role="status" aria-live="assertive">
     <strong>Phản ứng xảy ra</strong>
@@ -467,7 +467,7 @@
   <a-scene
     id="ar-scene"
     reaction-controller
-    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v6.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v7.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
     color-space="sRGB"
     renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
     vr-mode-ui="enabled: false"
@@ -488,7 +488,7 @@
           material="color: #e8fbff; opacity: 0.65; transparent: true; side: double"></a-circle>
         <a-entity id="liquid-surface-point" position="0 0.24 0"></a-entity>
         <a-torus id="pink-pulse" visible="false" position="0 0.245 0" rotation="90 0 0" radius="0.19" radius-tubular="0.022" scale="0.2 0.2 0.2"
-          material="color: #ff2f92; opacity: 0.8; transparent: true"></a-torus>
+          material="color: #ff78b7; opacity: 0.68; transparent: true"></a-torus>
         <a-text value="NaOH" position="0 0.54 0" align="center" color="#dbeafe" width="2.0" side="double"></a-text>
       </a-entity>
     </a-entity>
@@ -502,7 +502,7 @@
         <a-cone id="drop-tip" position="0 -0.15 0" radius-bottom="0.032" radius-top="0.009" height="0.16"
           material="color: #e2e8f0; opacity: 0.82; transparent: true"></a-cone>
         <a-sphere id="drop-visual" visible="false" position="0 -0.24 0" radius="0.035" scale="0.8 1.25 0.8"
-          material="color: #f22c8d; opacity: 0.9; transparent: true"></a-sphere>
+          material="color: #ff8fc7; opacity: 0.82; transparent: true"></a-sphere>
         <a-text value="Phenolphthalein" position="0 0.51 0" rotation="0 0 18" align="center" color="#ffd6e9" width="2.1" side="double"></a-text>
       </a-entity>
     </a-entity>
@@ -602,7 +602,7 @@
         startButton.disabled = false;
         startButton.textContent = 'Tải lại trang để thử';
         startButton.dataset.action = 'reload';
-        updateStatus('Khởi động camera quá lâu', 'Kiểm tra quyền camera và file targets_naoh_phenolphthalein_v6.mind trong cùng thư mục.', 'error');
+        updateStatus('Khởi động camera quá lâu', 'Kiểm tra quyền camera và file targets_naoh_phenolphthalein_v7.mind trong cùng thư mục.', 'error');
       }, 15000);
     }
 
@@ -648,7 +648,7 @@
       startButton.dataset.action = 'start';
       const reason = event.detail && event.detail.error === 'VIDEO_FAIL'
         ? 'Không truy cập được camera. Hãy cấp quyền camera và mở trang bằng HTTPS.'
-        : 'Không tải được targets_naoh_phenolphthalein_v6.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
+        : 'Không tải được targets_naoh_phenolphthalein_v7.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
       updateStatus('Không thể khởi động AR', reason, 'error');
       statusPanel.style.display = 'block';
     });
