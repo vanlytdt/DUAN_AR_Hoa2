@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#081225" />
-  <title>AR: NaOH và phenolphthalein</title>
+  <title>PHT-V3 — AR NaOH và phenolphthalein</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
@@ -167,6 +167,34 @@
     }
 
     a-scene { position: fixed !important; inset: 0; }
+
+    #build-badge {
+      position: fixed;
+      z-index: 40;
+      top: max(10px, env(safe-area-inset-top));
+      right: 10px;
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      color: #ffe4f0;
+      background: rgba(190, 24, 93, 0.72);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    #screen-drop {
+      position: fixed;
+      z-index: 35;
+      display: none;
+      width: 17px;
+      height: 23px;
+      border-radius: 55% 55% 62% 62%;
+      pointer-events: none;
+      background: radial-gradient(circle at 35% 28%, #ffd4e9 0 12%, #f43f98 34%, #be185d 100%);
+      box-shadow: 0 0 18px rgba(244, 63, 152, 0.72);
+      transform: translate(-50%, -50%);
+    }
   </style>
   <script>
     AFRAME.registerComponent('reaction-controller', {
@@ -178,6 +206,8 @@
         this.lastDebugUpdate = 0;
         this.worldA = new AFRAME.THREE.Vector3();
         this.worldB = new AFRAME.THREE.Vector3();
+        this.screenA = new AFRAME.THREE.Vector3();
+        this.screenB = new AFRAME.THREE.Vector3();
 
         this.naohTarget = document.querySelector('#target-naoh');
         this.phenolTarget = document.querySelector('#target-phenol');
@@ -186,6 +216,7 @@
         this.dropTip = document.querySelector('#drop-tip');
         this.drop = document.querySelector('#drop-visual');
         this.pulse = document.querySelector('#pink-pulse');
+        this.screenDrop = document.querySelector('#screen-drop');
 
         this.naohTarget.addEventListener('targetFound', () => {
           this.naohFound = true;
@@ -220,23 +251,53 @@
       tick(time) {
         if (this.reacted || !this.naohFound || !this.phenolFound) return;
 
+        const cameraEntity = document.querySelector('#ar-camera');
+        const camera = cameraEntity && cameraEntity.getObject3D('camera');
+        if (!camera) return;
+
         this.surfacePoint.object3D.getWorldPosition(this.worldA);
         this.dropTip.object3D.getWorldPosition(this.worldB);
         const tipDistance = this.worldA.distanceTo(this.worldB);
 
-        this.naohTarget.object3D.getWorldPosition(this.worldA);
-        this.phenolTarget.object3D.getWorldPosition(this.worldB);
-        const markerDistance = this.worldA.distanceTo(this.worldB);
+        this.screenA.copy(this.worldA).project(camera);
+        this.screenB.copy(this.worldB).project(camera);
+        const horizontalOffset = this.screenB.x - this.screenA.x;
+        const verticalOffset = this.screenB.y - this.screenA.y;
+
+        // Điều kiện bố trí hợp lí trên màn hình:
+        // đầu nhỏ phải ở phía trên, thẳng hàng và đủ gần mặt dung dịch NaOH.
+        const isAbove = verticalOffset > 0.045;
+        const isNotTooHigh = verticalOffset < 0.72;
+        const isHorizontallyAligned = Math.abs(horizontalOffset) < 0.24;
+        const isSpatiallyClose = tipDistance < 1.30;
 
         if (time - this.lastDebugUpdate > 250) {
-          document.querySelector('#distance-debug').textContent = `Đầu nhỏ → dung dịch: ${tipDistance.toFixed(2)} | Hai thẻ: ${markerDistance.toFixed(2)}`;
+          document.querySelector('#distance-debug').textContent = `Lệch ngang: ${Math.abs(horizontalOffset).toFixed(2)} | Độ cao: ${verticalOffset.toFixed(2)} | Khoảng cách: ${tipDistance.toFixed(2)}`;
           this.lastDebugUpdate = time;
         }
 
-        const closeEnough = tipDistance < 0.42 || markerDistance < 1.05;
-        if (!closeEnough) {
+        if (!isAbove) {
           this.nearSince = 0;
-          updateStatus('Đã nhận đủ hai thẻ', 'Đưa thẻ Phenolphthalein gần thẻ NaOH hơn.', 'ready');
+          updateStatus('Vị trí chưa hợp lí', 'Đưa thẻ Phenolphthalein lên phía trên cốc NaOH.', 'ready');
+          return;
+        }
+
+        if (!isNotTooHigh) {
+          this.nearSince = 0;
+          updateStatus('Ống nhỏ đang quá cao', 'Hạ thẻ Phenolphthalein xuống gần mặt dung dịch hơn.', 'ready');
+          return;
+        }
+
+        if (!isHorizontallyAligned) {
+          this.nearSince = 0;
+          const direction = horizontalOffset < 0 ? 'sang phải' : 'sang trái';
+          updateStatus('Đầu nhỏ chưa thẳng tâm cốc', `Dịch thẻ Phenolphthalein ${direction}.`, 'ready');
+          return;
+        }
+
+        if (!isSpatiallyClose) {
+          this.nearSince = 0;
+          updateStatus('Hai thẻ còn quá xa', 'Đưa thẻ Phenolphthalein gần cốc NaOH hơn.', 'ready');
           return;
         }
 
@@ -250,17 +311,28 @@
         if (this.reacted) return;
         this.reacted = true;
 
-        this.drop.setAttribute('visible', true);
-        this.drop.setAttribute('position', '0 0.22 0');
-        this.drop.setAttribute('animation__fall', {
-          property: 'position',
-          to: '0 -0.34 0',
-          dur: 650,
-          easing: 'easeInQuad',
+        const tipScreen = this.phenolFound ? this.screenB : new AFRAME.THREE.Vector3(0, 0.28, 0);
+        const liquidScreen = this.naohFound ? this.screenA : new AFRAME.THREE.Vector3(0, -0.10, 0);
+        const startX = (tipScreen.x + 1) * 0.5 * window.innerWidth;
+        const startY = (1 - tipScreen.y) * 0.5 * window.innerHeight;
+        const endX = (liquidScreen.x + 1) * 0.5 * window.innerWidth;
+        const endY = (1 - liquidScreen.y) * 0.5 * window.innerHeight;
+
+        this.screenDrop.style.left = `${startX}px`;
+        this.screenDrop.style.top = `${startY}px`;
+        this.screenDrop.style.display = 'block';
+        this.screenDrop.animate([
+          { transform: 'translate(-50%, -50%) scale(0.78, 1.18)', opacity: 0.96 },
+          { transform: `translate(calc(-50% + ${endX - startX}px), calc(-50% + ${endY - startY}px)) scale(0.92, 1.30)`, opacity: 1 },
+        ], {
+          duration: 650,
+          easing: 'cubic-bezier(.45,.02,.7,1)',
+          fill: 'forwards',
         });
 
         window.setTimeout(() => {
-          this.drop.setAttribute('visible', false);
+          this.screenDrop.getAnimations().forEach((animation) => animation.cancel());
+          this.screenDrop.style.display = 'none';
           this.animateLiquid('#d9f5ff', '#ec268f', 1100);
           this.pulse.setAttribute('visible', true);
           this.pulse.setAttribute('animation__grow', {
@@ -298,6 +370,8 @@
         this.liquid.setAttribute('material', 'color', '#d9f5ff');
         this.drop.removeAttribute('animation__fall');
         this.drop.setAttribute('visible', false);
+        this.screenDrop.getAnimations().forEach((animation) => animation.cancel());
+        this.screenDrop.style.display = 'none';
         this.pulse.removeAttribute('animation__grow');
         this.pulse.removeAttribute('animation__fade');
         this.pulse.setAttribute('visible', false);
@@ -326,9 +400,11 @@
   </script>
 </head>
 <body>
+  <div id="build-badge">PHT-V3</div>
+  <div id="screen-drop" aria-hidden="true"></div>
   <section id="start-panel" class="panel" aria-live="polite">
     <h1>NaOH + Phenolphthalein</h1>
-    <p>Quét hai thẻ AR và đưa đầu pipet lại gần cốc để quan sát dung dịch hóa hồng.</p>
+    <p>Quét hai thẻ AR, đặt đầu pipet phenolphthalein phía trên và thẳng tâm cốc NaOH để quan sát dung dịch hóa hồng.</p>
     <button id="start-button" class="primary-button" type="button">Bật camera AR</button>
   </section>
 
@@ -349,7 +425,7 @@
     </div>
     <div id="result"><strong>Hiện tượng:</strong> Trong môi trường kiềm, phenolphthalein chuyển sang dạng có màu hồng. Đây là hiện tượng đổi màu của chất chỉ thị, không phải tạo kết tủa.</div>
     <div class="button-row">
-      <button class="primary-button" type="button" onclick="runReaction()">Thử phản ứng</button>
+      <button class="primary-button" type="button" onclick="runReaction()">Kiểm tra hiệu ứng</button>
       <button class="secondary-button" type="button" onclick="resetReaction()">Làm lại</button>
     </div>
     <div id="distance-debug">Đang chờ nhận diện thẻ…</div>
@@ -358,7 +434,7 @@
   <a-scene
     id="ar-scene"
     reaction-controller
-    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    mindar-image="imageTargetSrc: ./targets_naoh_phenolphthalein_v3.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
     color-space="sRGB"
     renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
     vr-mode-ui="enabled: false"
@@ -398,7 +474,7 @@
       </a-entity>
     </a-entity>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-camera id="ar-camera" position="0 0 0" look-controls="enabled: false"></a-camera>
   </a-scene>
 
   <script>
@@ -461,7 +537,7 @@
       startButton.textContent = 'Thử bật lại camera';
       const reason = event.detail && event.detail.error === 'VIDEO_FAIL'
         ? 'Không truy cập được camera. Hãy cấp quyền camera và mở trang bằng HTTPS.'
-        : 'Không tải được targets.mind. Kiểm tra file nằm cùng thư mục với index.html.';
+        : 'Không tải được targets_naoh_phenolphthalein_v3.mind. Kiểm tra file nằm cùng thư mục với trang HTML.';
       updateStatus('Không thể khởi động AR', reason, 'error');
       statusPanel.style.display = 'block';
     });
