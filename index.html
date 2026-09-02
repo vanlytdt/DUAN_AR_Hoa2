@@ -81,7 +81,7 @@
 						material="color: #cbd5e1"></a-cylinder>
 					<a-cylinder position="0 -0.05 0" radius="0.024" height="0.25"
 						material="color: #ffffff; opacity: 0.58; transparent: true"></a-cylinder>
-					<a-cone position="0 -0.22 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.09"
+					<a-cone id="dau-pipet" position="0 -0.22 0" rotation="180 0 0" radius-bottom="0.024" radius-top="0.007" height="0.09"
 						material="color: #ffffff; opacity: 0.62; transparent: true"></a-cone>
 					<!-- Giọt ban đầu ẩn, chỉ hiện khi pipet bắt đầu nhỏ -->
 					<a-sphere id="giot-chi-thi" visible="false" position="0 -0.285 0" radius="0.023"
@@ -164,11 +164,15 @@
 			const nhanNaOH = document.querySelector('#nhan-naoh');
 			const giotChiThi = document.querySelector('#giot-chi-thi');
 			const matDungDich = document.querySelector('#mat-dung-dich');
+			const dauPipet = document.querySelector('#dau-pipet');
 			const tieuDe = document.querySelector('#tieu-de');
 			const noiDung = document.querySelector('#noi-dung');
 			
 			let daXayRaPhanUng = false;
 			let dangThaGiot = false;
+			let dangThayNaOH = false;
+			let dangThayPhenol = false;
+			let soKhungGanNhau = 0;
 
 			function datGiotVeDauPipet() {
 				giotChiThi.removeAttribute('animation__roi');
@@ -234,7 +238,7 @@
 
 				const pipet = document.querySelector('#pipet-tha-xuong');
 			pipet.removeAttribute('animation__ha');
-				pipet.setAttribute('position', '0 0.66 0.06');
+				pipet.setAttribute('position', '0 0.34 0.12');
 
 				chatLongNaOH.removeAttribute('animation__doimau');
 				chatLongNaOH.setAttribute('material', 'color: #f8fafc; opacity: 0.78; transparent: true; shader: flat');
@@ -252,37 +256,80 @@
 				noiDung.innerText = "Hãy hướng camera vào thẻ NaOH và Phenolphthalein rồi đẩy lại gần nhau";
 			}
 
+			// MindAR phát sự kiện targetFound/targetLost khi nhận diện hoặc mất từng thẻ.
+			theNaOH.addEventListener('targetFound', () => {
+				dangThayNaOH = true;
+				tieuDe.innerText = dangThayPhenol ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ NaOH';
+			});
+
+			theNaOH.addEventListener('targetLost', () => {
+				dangThayNaOH = false;
+				soKhungGanNhau = 0;
+			});
+
+			thePhenol.addEventListener('targetFound', () => {
+				dangThayPhenol = true;
+				tieuDe.innerText = dangThayNaOH ? 'Đã thấy cả hai thẻ' : 'Đã thấy thẻ Phenolphthalein';
+			});
+
+			thePhenol.addEventListener('targetLost', () => {
+				dangThayPhenol = false;
+				soKhungGanNhau = 0;
+			});
+
 			function theoDoiKhoangCach() {
-				const thayNaOH = theNaOH.object3D.visible;
-				const thayPhenol = thePhenol.object3D.visible;
+				if (dangThayNaOH && dangThayPhenol && !daXayRaPhanUng) {
+					// Cập nhật ma trận thế giới trước khi đo.
+					theNaOH.object3D.updateMatrixWorld(true);
+					thePhenol.object3D.updateMatrixWorld(true);
+					dauPipet.object3D.updateMatrixWorld(true);
+					matDungDich.object3D.updateMatrixWorld(true);
 
-				if (thayNaOH && thayPhenol) {
-					theNaOH.object3D.updateMatrixWorld();
-					thePhenol.object3D.updateMatrixWorld();
-
+					const viTriDauPipet = new THREE.Vector3();
+					const viTriMatDungDich = new THREE.Vector3();
 					const viTriNaOH = new THREE.Vector3();
 					const viTriPhenol = new THREE.Vector3();
+
+					dauPipet.object3D.getWorldPosition(viTriDauPipet);
+					matDungDich.object3D.getWorldPosition(viTriMatDungDich);
 					theNaOH.object3D.getWorldPosition(viTriNaOH);
 					thePhenol.object3D.getWorldPosition(viTriPhenol);
 
-					const khoangCach = viTriNaOH.distanceTo(viTriPhenol);
+					const kcDauPipet = viTriDauPipet.distanceTo(viTriMatDungDich);
+					const kcHaiThe = viTriNaOH.distanceTo(viTriPhenol);
 
-					if (khoangCach < 0.65 && !daXayRaPhanUng) {
+					// Hiện thông số để dễ kiểm tra trên máy tính/DevTools.
+					console.log('KC đầu pipet → mặt NaOH:', kcDauPipet.toFixed(3), ' | KC hai thẻ:', kcHaiThe.toFixed(3));
+
+					// Điều kiện chính: đầu pipet gần mặt dung dịch.
+					// Điều kiện dự phòng: hai marker đủ gần nhau để tránh sai số pose của điện thoại.
+					const duGan = kcDauPipet < 0.32 || kcHaiThe < 1.05;
+
+					if (duGan) {
+						soKhungGanNhau++;
+					} else {
+						soKhungGanNhau = 0;
+						noiDung.innerText = 'Di chuyển đầu pipet Phenolphthalein đến gần mặt dung dịch NaOH.';
+					}
+
+					// Phải đủ gần liên tiếp vài khung hình để tránh kích hoạt do rung camera.
+					if (soKhungGanNhau >= 5) {
 						daXayRaPhanUng = true;
-
-						tieuDe.innerText = "Đang nhỏ Phenolphthalein vào NaOH...";
-						tieuDe.style.color = "#38bdf8";
-						noiDung.innerText = "Giọt đang rơi từ đầu pipet xuống mặt dung dịch. Chưa chạm thì NaOH vẫn trong suốt.";
-
+						tieuDe.innerText = 'Đang nhỏ Phenolphthalein vào NaOH...';
+						tieuDe.style.color = '#38bdf8';
+						noiDung.innerText = 'Giọt đang rơi từ đầu pipet xuống mặt dung dịch.';
 						batDauNhoGiot();
 					}
-				} else if (!thayNaOH && !thayPhenol && daXayRaPhanUng) {
+				}
+
+				// Chỉ reset khi cả hai thẻ đều đã mất khỏi camera.
+				if (!dangThayNaOH && !dangThayPhenol && daXayRaPhanUng) {
 					resetThiNghiem();
 				}
 
 				requestAnimationFrame(theoDoiKhoangCach);
 			}
-			
+
 			theoDoiKhoangCach();
 		</script>
 	</body>
