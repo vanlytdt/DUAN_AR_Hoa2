@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07162b" />
+  <title>NAH2O-V3 — Mô phỏng AR Na và H₂O</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #07162b; }
+    button { font: inherit; }
+    a-scene { position: fixed !important; inset: 0; }
+
+    .panel {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      width: min(92vw, 560px);
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 18px;
+      color: #f8fbff;
+      background: rgba(5, 18, 38, 0.84);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.30);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    #start-panel {
+      top: 50%;
+      padding: 24px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    #start-panel h1 { margin: 0 0 8px; font-size: clamp(24px, 6vw, 36px); }
+    #start-panel p { margin: 0 0 14px; color: #b9cae4; line-height: 1.5; }
+
+    .safety-note {
+      margin: 12px 0 18px;
+      padding: 9px 11px;
+      border: 1px solid rgba(251, 191, 36, 0.38);
+      border-radius: 12px;
+      color: #fde68a;
+      background: rgba(146, 64, 14, 0.22);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .primary, .secondary {
+      min-height: 48px;
+      padding: 11px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 850;
+    }
+
+    .primary {
+      border: 0;
+      color: #07162b;
+      background: linear-gradient(135deg, #fbbf24, #fb923c);
+      box-shadow: 0 10px 26px rgba(251, 146, 60, 0.24);
+    }
+
+    .secondary {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e8f2ff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    button:disabled { cursor: wait; opacity: 0.58; }
+    button:active { transform: scale(0.98); }
+
+    #status-panel {
+      top: max(12px, env(safe-area-inset-top));
+      display: none;
+      padding: 12px 14px;
+    }
+
+    .status-row { display: flex; align-items: center; gap: 10px; }
+    #status-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: #f59e0b; }
+    #status-title { padding-right: 56px; font-weight: 850; }
+    #status-detail { margin-top: 3px; color: #b9cae4; font-size: 13px; line-height: 1.35; }
+
+    #build-badge {
+      position: fixed;
+      z-index: 50;
+      top: max(10px, env(safe-area-inset-top));
+      right: 10px;
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      color: #fff4d0;
+      background: rgba(194, 65, 12, 0.78);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+    }
+
+    #control-panel {
+      bottom: max(14px, env(safe-area-inset-bottom));
+      display: none;
+      padding: 12px;
+    }
+
+    .chips, .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .chips { margin-bottom: 9px; }
+    .chip {
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      color: #96a9c6;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .chip.found { color: #dcfce7; border-color: rgba(34, 197, 94, 0.52); background: rgba(34, 197, 94, 0.17); }
+    #progress { margin: 0 0 9px; color: #a9bbd6; font-size: 12px; text-align: center; }
+
+    #equation-toast {
+      position: fixed;
+      z-index: 45;
+      top: calc(max(12px, env(safe-area-inset-top)) + 84px);
+      left: 50%;
+      width: min(88vw, 500px);
+      padding: 12px 16px;
+      border: 1px solid rgba(253, 230, 138, 0.58);
+      border-radius: 16px;
+      color: #fff7dc;
+      background: linear-gradient(135deg, rgba(146, 64, 14, 0.93), rgba(194, 65, 12, 0.93));
+      box-shadow: 0 14px 34px rgba(80, 38, 8, 0.40);
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      transform: translate(-50%, -12px) scale(0.98);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    #equation-toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    #equation-toast strong { display: block; margin-bottom: 3px; font-size: 17px; }
+    #equation-toast span { color: #ffedb8; font-size: 13px; }
+    .hidden { display: none !important; }
+  </style>
+  <script>
+    AFRAME.registerComponent('na-water-controller', {
+      init() {
+        this.ready = false;
+        this.el.addEventListener('loaded', () => this.setup(), { once: true });
+      },
+
+      setup() {
+        this.naFound = false;
+        this.waterFound = false;
+        this.alignedSince = 0;
+        this.state = 'idle';
+        this.startTime = 0;
+        this.lastTickTime = 0;
+        this.lastGuidance = 0;
+        this.worldWater = new AFRAME.THREE.Vector3();
+        this.worldNa = new AFRAME.THREE.Vector3();
+        this.screenWater = new AFRAME.THREE.Vector3();
+        this.screenNa = new AFRAME.THREE.Vector3();
+
+        this.naTarget = document.querySelector('#target-na');
+        this.waterTarget = document.querySelector('#target-water');
+        this.naMarkerObject = document.querySelector('#na-marker-object');
+        this.waterSurfacePoint = document.querySelector('#water-surface-point');
+        this.naContactPoint = document.querySelector('#na-contact-point');
+        this.reactionGroup = document.querySelector('#reaction-group');
+        this.pellet = document.querySelector('#reaction-na');
+        this.rippleA = document.querySelector('#ripple-a');
+        this.rippleB = document.querySelector('#ripple-b');
+        this.glow = document.querySelector('#yellow-glow');
+        this.productLabel = document.querySelector('#product-label');
+        this.bubbleGroup = document.querySelector('#bubble-group');
+        this.mistGroup = document.querySelector('#mist-group');
+        this.bubbles = [];
+        this.mist = [];
+        this.audio = null;
+
+        this.createParticles();
+
+        this.naTarget.addEventListener('targetFound', () => {
+          this.naFound = true;
+          updateChip('na', true);
+          updateStatus('Đã nhận thẻ Na', this.waterFound ? 'Đặt thẻ Na phía trên và thẳng tâm cốc nước.' : 'Tiếp tục quét thẻ H₂O.', 'ready');
+        });
+        this.naTarget.addEventListener('targetLost', () => {
+          this.naFound = false;
+          this.alignedSince = 0;
+          updateChip('na', false);
+          if (this.state === 'idle') updateStatus('Mất thẻ Na', 'Đưa thẻ Na vào khung hình.', 'searching');
+        });
+        this.waterTarget.addEventListener('targetFound', () => {
+          this.waterFound = true;
+          updateChip('water', true);
+          updateStatus('Đã nhận thẻ H₂O', this.naFound ? 'Đặt thẻ Na phía trên và thẳng tâm cốc nước.' : 'Tiếp tục quét thẻ Na.', 'ready');
+        });
+        this.waterTarget.addEventListener('targetLost', () => {
+          this.waterFound = false;
+          this.alignedSince = 0;
+          updateChip('water', false);
+          if (this.state === 'idle') updateStatus('Mất thẻ H₂O', 'Đưa thẻ H₂O vào khung hình.', 'searching');
+        });
+
+        window.previewReaction = () => {
+          if (!this.waterFound) {
+            updateStatus('Chưa thấy cốc nước', 'Quét thẻ H₂O rồi bấm lại nút mô phỏng.', 'error');
+            return;
+          }
+          this.startReaction(this.lastTickTime);
+        };
+        window.resetReaction = () => this.reset();
+        this.ready = true;
+      },
+
+      createParticles() {
+        for (let i = 0; i < 18; i += 1) {
+          const bubble = document.createElement('a-sphere');
+          const radius = 0.010 + (i % 4) * 0.004;
+          bubble.setAttribute('radius', radius);
+          bubble.setAttribute('material', 'color: #e6fbff; opacity: 0; transparent: true; shader: flat; depthWrite: false');
+          bubble.setAttribute('visible', false);
+          this.bubbleGroup.appendChild(bubble);
+          this.bubbles.push({
+            el: bubble,
+            delay: i * 115,
+            life: 720 + (i % 5) * 95,
+            ox: ((i * 37) % 17 - 8) * 0.008,
+            oz: ((i * 53) % 19 - 9) * 0.007,
+          });
+        }
+
+        for (let i = 0; i < 9; i += 1) {
+          const particle = document.createElement('a-sphere');
+          particle.setAttribute('radius', 0.025 + (i % 3) * 0.009);
+          particle.setAttribute('material', 'color: #f8fafc; opacity: 0; transparent: true; shader: flat; depthWrite: false');
+          particle.setAttribute('visible', false);
+          this.mistGroup.appendChild(particle);
+          this.mist.push({
+            el: particle,
+            delay: 1200 + i * 310,
+            life: 1600 + (i % 3) * 260,
+            ox: ((i * 29) % 11 - 5) * 0.018,
+            oz: ((i * 41) % 13 - 6) * 0.014,
+          });
+        }
+      },
+
+      tick(time) {
+        if (!this.ready) return;
+        this.lastTickTime = time;
+        if (this.state === 'running') {
+          this.updateReaction(time - this.startTime);
+          return;
+        }
+        if (this.state === 'done' || !this.naFound || !this.waterFound) return;
+
+        const cameraEntity = document.querySelector('#ar-camera');
+        const camera = cameraEntity && cameraEntity.getObject3D('camera');
+        if (!camera) return;
+
+        this.waterSurfacePoint.object3D.getWorldPosition(this.worldWater);
+        this.naContactPoint.object3D.getWorldPosition(this.worldNa);
+        const spatialDistance = this.worldWater.distanceTo(this.worldNa);
+        this.screenWater.copy(this.worldWater).project(camera);
+        this.screenNa.copy(this.worldNa).project(camera);
+
+        const dx = this.screenNa.x - this.screenWater.x;
+        const dy = this.screenNa.y - this.screenWater.y;
+        const isAbove = dy > 0.05;
+        const isNearHeight = dy < 0.72;
+        const isCentered = Math.abs(dx) < 0.25;
+        const isClose = spatialDistance < 1.35;
+
+        if (!isAbove) return this.guide(time, 'Vị trí chưa đúng', 'Đưa thẻ Na lên phía trên cốc nước.');
+        if (!isNearHeight) return this.guide(time, 'Thẻ Na đang quá cao', 'Hạ thẻ Na xuống gần mặt nước hơn.');
+        if (!isCentered) return this.guide(time, 'Na chưa thẳng tâm cốc', `Dịch thẻ Na ${dx < 0 ? 'sang phải' : 'sang trái'}.`);
+        if (!isClose) return this.guide(time, 'Hai thẻ còn quá xa', 'Đưa thẻ Na gần cốc nước hơn.');
+
+        if (!this.alignedSince) this.alignedSince = time;
+        const remaining = Math.max(0, 700 - (time - this.alignedSince));
+        updateStatus('Đúng vị trí mô phỏng', `Giữ ổn định ${(remaining / 1000).toFixed(1)} giây.`, 'reacting');
+        if (remaining <= 0) this.startReaction(time);
+      },
+
+      guide(time, title, detail) {
+        this.alignedSince = 0;
+        if (time - this.lastGuidance > 180) {
+          updateStatus(title, detail, 'ready');
+          this.lastGuidance = time;
+        }
+      },
+
+      startReaction(time) {
+        if (this.state === 'running') return;
+        this.state = 'running';
+        this.startTime = time;
+        this.alignedSince = 0;
+        this.naMarkerObject.setAttribute('visible', false);
+        this.reactionGroup.setAttribute('visible', true);
+        this.pellet.setAttribute('visible', true);
+        this.productLabel.setAttribute('visible', false);
+        document.querySelector('#equation-toast').classList.add('show');
+        document.querySelector('#progress').textContent = 'Na chạm mặt nước • bắt đầu giải phóng khí H₂';
+        updateStatus('Mô phỏng phản ứng bắt đầu', 'Mẩu Na nổi trên mặt nước và xuất hiện bọt khí H₂.', 'reacting');
+        this.startFizzSound();
+        window.setTimeout(() => this.speakNarration(), 380);
+      },
+
+      updateReaction(elapsed) {
+        const t = elapsed / 1000;
+        const progress = Math.min(1, elapsed / 7200);
+        const dropProgress = Math.min(1, elapsed / 700);
+        const surfaceY = 0.255;
+        const x = Math.sin(t * 5.4) * 0.16 + Math.sin(t * 9.2) * 0.045;
+        const z = Math.cos(t * 4.7) * 0.11 + Math.sin(t * 7.8) * 0.035;
+        const y = elapsed < 700 ? 0.72 - (0.72 - surfaceY) * (1 - Math.pow(1 - dropProgress, 3)) : surfaceY + Math.sin(t * 11) * 0.008;
+        this.pellet.object3D.position.set(x, y, z);
+
+        const shrink = Math.max(0.16, 1 - progress * 0.84);
+        const flatten = elapsed < 900 ? 1 : 0.72 + Math.sin(t * 8) * 0.025;
+        this.pellet.object3D.scale.set(shrink, shrink * flatten, shrink);
+
+        const rippleTimeA = Math.max(0, (elapsed - 620) % 1250) / 1250;
+        const rippleTimeB = Math.max(0, (elapsed - 1100) % 1250) / 1250;
+        this.updateRipple(this.rippleA, rippleTimeA, elapsed > 620);
+        this.updateRipple(this.rippleB, rippleTimeB, elapsed > 1100);
+
+        for (const bubble of this.bubbles) {
+          const age = elapsed - 680 - bubble.delay;
+          if (age < 0 || elapsed > 6650) {
+            bubble.el.setAttribute('visible', false);
+            continue;
+          }
+          const local = (age % bubble.life) / bubble.life;
+          bubble.el.setAttribute('visible', true);
+          bubble.el.object3D.position.set(x + bubble.ox, surfaceY + 0.018 + local * 0.22, z + bubble.oz);
+          bubble.el.setAttribute('material', 'opacity', Math.sin(Math.PI * local) * 0.78);
+        }
+
+        for (const particle of this.mist) {
+          const age = elapsed - particle.delay;
+          if (age < 0 || elapsed > 6100) {
+            particle.el.setAttribute('visible', false);
+            continue;
+          }
+          const local = (age % particle.life) / particle.life;
+          particle.el.setAttribute('visible', true);
+          particle.el.object3D.position.set(x + particle.ox, surfaceY + 0.08 + local * 0.52, z + particle.oz);
+          const scale = 0.65 + local * 1.35;
+          particle.el.object3D.scale.set(scale, scale, scale);
+          particle.el.setAttribute('material', 'opacity', Math.sin(Math.PI * local) * 0.30);
+        }
+
+        const glowPhase = elapsed > 3600 && elapsed < 4550;
+        this.glow.setAttribute('visible', glowPhase);
+        if (glowPhase) {
+          const pulse = 0.78 + Math.sin(t * 19) * 0.12;
+          this.glow.object3D.position.set(x, surfaceY + 0.10, z);
+          this.glow.object3D.scale.set(pulse, pulse * 1.22, pulse);
+        }
+
+        if (elapsed < 700) {
+          document.querySelector('#progress').textContent = 'Mẩu Na đang tiến đến mặt nước';
+        } else if (elapsed < 3000) {
+          document.querySelector('#progress').textContent = 'Na vo tròn, chuyển động trên mặt nước và giải phóng H₂';
+        } else if (elapsed < 5000) {
+          document.querySelector('#progress').textContent = 'Phản ứng tỏa nhiệt • có thể xuất hiện ánh sáng vàng ngắn';
+        } else if (elapsed < 7200) {
+          document.querySelector('#progress').textContent = 'Mẩu Na nhỏ dần • bọt khí giảm dần';
+        } else {
+          this.finishReaction();
+        }
+      },
+
+      updateRipple(ring, local, active) {
+        ring.setAttribute('visible', active);
+        if (!active) return;
+        const scale = 0.35 + local * 1.65;
+        ring.object3D.scale.set(scale, scale, scale);
+        ring.setAttribute('material', 'opacity', (1 - local) * 0.58);
+      },
+
+      finishReaction() {
+        this.state = 'done';
+        this.pellet.setAttribute('visible', false);
+        this.rippleA.setAttribute('visible', false);
+        this.rippleB.setAttribute('visible', false);
+        this.glow.setAttribute('visible', false);
+        this.bubbles.forEach(({ el }) => el.setAttribute('visible', false));
+        this.mist.forEach(({ el }) => el.setAttribute('visible', false));
+        this.productLabel.setAttribute('visible', true);
+        document.querySelector('#progress').textContent = 'Hoàn tất mô phỏng: tạo dung dịch NaOH và khí H₂';
+        updateStatus('Mô phỏng hoàn tất', '2Na + 2H₂O → 2NaOH + H₂↑', 'success');
+        this.stopFizzSound();
+        window.setTimeout(() => document.querySelector('#equation-toast').classList.remove('show'), 2600);
+      },
+
+      reset() {
+        this.state = 'idle';
+        this.startTime = 0;
+        this.alignedSince = 0;
+        this.naMarkerObject.setAttribute('visible', true);
+        this.reactionGroup.setAttribute('visible', false);
+        this.productLabel.setAttribute('visible', false);
+        this.bubbles.forEach(({ el }) => el.setAttribute('visible', false));
+        this.mist.forEach(({ el }) => el.setAttribute('visible', false));
+        document.querySelector('#equation-toast').classList.remove('show');
+        document.querySelector('#progress').textContent = 'Đặt thẻ Na phía trên cốc nước để bắt đầu';
+        updateStatus('Đã đặt lại mô phỏng', 'Quét đủ hai thẻ và đặt Na phía trên cốc nước.', 'searching');
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        this.stopFizzSound();
+      },
+
+      speakNarration() {
+        if (!('speechSynthesis' in window)) {
+          updateStatus('Không hỗ trợ giọng đọc', 'Thiết bị hoặc trình duyệt này không có chức năng đọc văn bản.', 'error');
+          return;
+        }
+        const utterance = new SpeechSynthesisUtterance(
+          'Natri tác dụng với nước tạo thành natri hiđroxit và khí hiđrô. Trong mô phỏng, mẩu natri nổi, chuyển động, nhỏ dần và giải phóng bọt khí.'
+        );
+        const voices = window.speechSynthesis.getVoices();
+        const vietnameseVoice = voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith('vi'));
+        utterance.lang = 'vi-VN';
+        utterance.rate = 0.92;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        if (vietnameseVoice) utterance.voice = vietnameseVoice;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        window.speechSynthesis.speak(utterance);
+      },
+
+      startFizzSound() {
+        try {
+          const AudioCtor = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtor) return;
+          const context = window.arAudioContext || new AudioCtor();
+          window.arAudioContext = context;
+          if (context.state === 'suspended') context.resume();
+          const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+          const source = context.createBufferSource();
+          const filter = context.createBiquadFilter();
+          const gain = context.createGain();
+          source.buffer = buffer;
+          source.loop = true;
+          filter.type = 'bandpass';
+          filter.frequency.value = 1200;
+          filter.Q.value = 0.8;
+          gain.gain.value = 0.015;
+          source.connect(filter).connect(gain).connect(context.destination);
+          source.start();
+          this.audio = { source, gain };
+        } catch (error) {
+          console.warn('Không thể phát âm thanh mô phỏng:', error);
+        }
+      },
+
+      stopFizzSound() {
+        if (!this.audio) return;
+        try { this.audio.source.stop(); } catch (error) {}
+        this.audio = null;
+      },
+    });
+  </script>
+</head>
+<body>
+  <div id="build-badge">NAH2O-V3</div>
+
+  <section id="start-panel" class="panel" aria-live="polite">
+    <h1>Na + H₂O</h1>
+    <p>Mô phỏng AR theo diễn tiến: nổi – chuyển động – sủi bọt – nhỏ dần.</p>
+    <div class="safety-note">Mô phỏng số phục vụ học tập. Natri phản ứng rất nguy hiểm với nước; không tự thực hiện ngoài phòng thí nghiệm có giáo viên phụ trách.</div>
+    <button id="start-button" class="primary" type="button" disabled>Đang tải hệ thống AR…</button>
+  </section>
+
+  <section id="status-panel" class="panel" aria-live="polite">
+    <div class="status-row">
+      <span id="status-dot"></span>
+      <div>
+        <div id="status-title">Đang tải hệ thống AR…</div>
+        <div id="status-detail">Vui lòng chờ.</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="equation-toast" role="status" aria-live="polite">
+    <strong>2Na + 2H₂O → 2NaOH + H₂↑</strong>
+    <span>Mô phỏng trực quan ở mức an toàn, không phải hướng dẫn thí nghiệm thật.</span>
+  </div>
+
+  <section id="control-panel" class="panel">
+    <div class="chips">
+      <div id="chip-na" class="chip">① Thẻ Na</div>
+      <div id="chip-water" class="chip">② Thẻ H₂O</div>
+    </div>
+    <div id="progress">Đặt thẻ Na phía trên cốc nước để bắt đầu</div>
+    <div class="buttons">
+      <button class="primary" type="button" onclick="previewReaction()">Xem mô phỏng</button>
+      <button class="secondary" type="button" onclick="resetReaction()">Làm lại</button>
+    </div>
+  </section>
+
+  <a-scene
+    id="ar-scene"
+    na-water-controller
+    mindar-image="imageTargetSrc: ./targets_na_h2o_v3.mind; maxTrack: 2; autoStart: false; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 2; missTolerance: 5; uiLoading: no; uiScanning: no; uiError: no"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; alpha: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded>
+
+    <a-light type="ambient" color="#ffffff" intensity="1.0"></a-light>
+    <a-light type="directional" color="#fff8e8" intensity="0.75" position="1 3 2"></a-light>
+
+    <a-entity id="target-na" mindar-image-target="targetIndex: 0">
+      <a-entity id="na-marker-object" position="0 0.18 0">
+        <a-sphere radius="0.15" scale="1 0.72 1" material="color: #d8dde3; metalness: 0.78; roughness: 0.18"></a-sphere>
+        <a-sphere position="-0.045 0.035 0.12" radius="0.035" material="color: #ffffff; opacity: 0.56; transparent: true; shader: flat"></a-sphere>
+        <a-entity id="na-contact-point" position="0 -0.14 0"></a-entity>
+        <a-text value="Na" position="0 0.30 0" align="center" width="1.7" color="#fff7dc" side="double"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <a-entity id="target-water" mindar-image-target="targetIndex: 1">
+      <a-entity position="0 -0.10 0" scale="0.92 0.92 0.92">
+        <a-cylinder position="0 0.22 0" radius="0.36" height="0.46" open-ended="true"
+          material="color: #d8f3ff; opacity: 0.20; transparent: true; side: double; metalness: 0.04; roughness: 0.10"></a-cylinder>
+        <a-torus position="0 0.45 0" rotation="90 0 0" radius="0.36" radius-tubular="0.014"
+          material="color: #dff6ff; opacity: 0.76; transparent: true"></a-torus>
+        <a-cylinder position="0 0.17 0" radius="0.335" height="0.17"
+          material="color: #4cc9f0; opacity: 0.54; transparent: true; roughness: 0.18"></a-cylinder>
+        <a-circle position="0 0.26 0" rotation="-90 0 0" radius="0.335"
+          material="color: #8be0f7; opacity: 0.55; transparent: true; side: double"></a-circle>
+        <a-entity id="water-surface-point" position="0 0.26 0"></a-entity>
+
+        <a-entity id="reaction-group" visible="false">
+          <a-sphere id="reaction-na" position="0 0.72 0" radius="0.15" scale="1 0.72 1"
+            material="color: #e4e8ec; metalness: 0.84; roughness: 0.16"></a-sphere>
+          <a-ring id="ripple-a" visible="false" position="0 0.267 0" rotation="-90 0 0" radius-inner="0.12" radius-outer="0.135"
+            material="color: #e9fbff; opacity: 0.55; transparent: true; side: double; shader: flat; depthWrite: false"></a-ring>
+          <a-ring id="ripple-b" visible="false" position="0 0.269 0" rotation="-90 0 0" radius-inner="0.10" radius-outer="0.115"
+            material="color: #ffffff; opacity: 0.45; transparent: true; side: double; shader: flat; depthWrite: false"></a-ring>
+          <a-entity id="bubble-group"></a-entity>
+          <a-entity id="mist-group"></a-entity>
+          <a-sphere id="yellow-glow" visible="false" position="0 0.35 0" radius="0.18" scale="0.8 1 0.8"
+            material="color: #ffd84d; opacity: 0.46; transparent: true; shader: flat; depthWrite: false"></a-sphere>
+          <a-text id="product-label" visible="false" value="Dung dich NaOH + H2" position="0 0.67 0" align="center" width="1.65" color="#e7fbff" side="double"></a-text>
+        </a-entity>
+
+        <a-text value="H₂O" position="0 0.58 0" align="center" width="1.6" color="#dff7ff" side="double"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <a-camera id="ar-camera" position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
+
+  <script>
+    const scene = document.querySelector('#ar-scene');
+    const startPanel = document.querySelector('#start-panel');
+    const startButton = document.querySelector('#start-button');
+    const statusPanel = document.querySelector('#status-panel');
+    const controlPanel = document.querySelector('#control-panel');
+    let sceneLoaded = false;
+    let cameraStarted = false;
+    let arReadyReceived = false;
+    let startupTimer = null;
+
+    function updateChip(name, found) {
+      document.querySelector(`#chip-${name}`).classList.toggle('found', found);
+    }
+
+    function updateStatus(title, detail, state = 'searching') {
+      document.querySelector('#status-title').textContent = title;
+      document.querySelector('#status-detail').textContent = detail;
+      const colors = { searching: '#f59e0b', ready: '#38bdf8', reacting: '#fb923c', success: '#22c55e', error: '#ef4444' };
+      const color = colors[state] || colors.searching;
+      const dot = document.querySelector('#status-dot');
+      dot.style.background = color;
+      dot.style.boxShadow = `0 0 0 5px ${color}29`;
+    }
+
+    function markSceneReady() {
+      sceneLoaded = true;
+      startButton.disabled = false;
+      startButton.textContent = 'Bật camera AR';
+      startButton.dataset.action = 'start';
+    }
+
+    function startCamera() {
+      if (startButton.dataset.action === 'reload') return location.reload();
+      if (cameraStarted) return;
+      statusPanel.style.display = 'block';
+
+      if (location.protocol === 'file:') {
+        return updateStatus('Camera bị chặn', 'Không mở bằng file://. Hãy dùng hosting HTTPS.', 'error');
+      }
+      if (!window.isSecureContext) return updateStatus('Trang chưa dùng HTTPS', 'Camera chỉ hoạt động trên HTTPS hoặc localhost.', 'error');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return updateStatus('Không truy cập được camera', 'Hãy dùng Chrome/Safari mới và cấp quyền camera.', 'error');
+      }
+      if (!sceneLoaded) return updateStatus('AR chưa tải xong', 'Chờ vài giây rồi bấm lại.', 'error');
+
+      const system = scene.systems['mindar-image-system'];
+      if (!system) return updateStatus('MindAR chưa sẵn sàng', 'Kiểm tra kết nối Internet rồi tải lại trang.', 'error');
+
+      cameraStarted = true;
+      startButton.disabled = true;
+      startButton.textContent = 'Đang mở camera…';
+      updateStatus('Đang khởi động camera…', 'Vui lòng cho phép trang sử dụng camera.', 'searching');
+      try {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtor && !window.arAudioContext) window.arAudioContext = new AudioCtor();
+        if (window.arAudioContext && window.arAudioContext.state === 'suspended') window.arAudioContext.resume();
+        system.start();
+      } catch (error) {
+        cameraStarted = false;
+        startButton.disabled = false;
+        startButton.textContent = 'Thử bật lại camera';
+        return updateStatus('Không thể gọi camera', error && error.message ? error.message : 'Tải lại trang và thử lại.', 'error');
+      }
+
+      startupTimer = window.setTimeout(() => {
+        if (arReadyReceived) return;
+        cameraStarted = false;
+        startButton.disabled = false;
+        startButton.textContent = 'Tải lại trang để thử';
+        startButton.dataset.action = 'reload';
+        updateStatus('Khởi động quá lâu', 'Kiểm tra quyền camera và file targets_na_h2o_v3.mind.', 'error');
+      }, 15000);
+    }
+
+    startButton.addEventListener('click', startCamera);
+    if (scene.hasLoaded) markSceneReady();
+    else scene.addEventListener('loaded', markSceneReady, { once: true });
+
+    scene.addEventListener('arReady', () => {
+      arReadyReceived = true;
+      window.clearTimeout(startupTimer);
+      startPanel.classList.add('hidden');
+      document.querySelector('#build-badge').style.display = 'none';
+      statusPanel.style.display = 'block';
+      controlPanel.style.display = 'block';
+      updateStatus('Camera đã sẵn sàng', 'Quét thẻ H₂O và thẻ Na.', 'searching');
+    });
+
+    scene.addEventListener('arError', (event) => {
+      arReadyReceived = false;
+      cameraStarted = false;
+      window.clearTimeout(startupTimer);
+      startButton.disabled = false;
+      startButton.textContent = 'Thử bật lại camera';
+      const videoFail = event.detail && event.detail.error === 'VIDEO_FAIL';
+      updateStatus('Không thể khởi động AR', videoFail ? 'Hãy cấp quyền camera và mở bằng HTTPS.' : 'Kiểm tra targets_na_h2o_v3.mind nằm cùng thư mục.', 'error');
+    });
+  </script>
+</body>
+</html>
